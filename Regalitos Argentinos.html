@@ -439,6 +439,7 @@ nav.tabs a{padding:9px 18px}
     });
   }
   function render(){
+    armed = null; clearTimeout(armedTimer);
     updateTabs();
     var h;
     if(!loaded) h = '<p class="loading">Cargando tus datos…</p>';
