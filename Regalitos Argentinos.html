@@ -459,7 +459,7 @@ nav.tabs a{padding:9px 18px}
     var total = 0;
     S.materiales.forEach(function(m){
       var cu = unitCost(m), ab = (UN[m.unidad] || UN.un).abbr;
-      put('mcost:' + m.id, money(cu) + ' / ' + ab);
+      put('mcost:' + m.id, +m.cantCompra > 0 ? money(cu) + ' / ' + ab : 'Falta la cantidad comprada');
       put('mval:' + m.id, money((+m.stock || 0) * cu));
       total += (+m.stock || 0) * cu;
       var chip = outs['mst:' + m.id];
