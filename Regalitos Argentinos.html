@@ -558,9 +558,10 @@ nav.tabs a{padding:9px 18px}
     var p = byId(S.productos, id); if(!p) return;
     var inp = app.querySelector('[data-nid="' + id + '"]');
     var msg = outs['pmsg:' + id];
-    var n = Math.floor(parseFloat(inp && inp.value));
+    var n = parseFloat(inp && inp.value);
     function show(text, cls){ msg.hidden = false; msg.className = 'msg ' + cls; msg.textContent = text; }
     if(!(n > 0)){ show('Poné cuántas pulseras armaste.', 'warn'); return; }
+    if(n !== Math.floor(n)){ show('Poné un número entero de pulseras.', 'warn'); return; }
     var faltan = [], uso = needs(p);
     uso.forEach(function(u){
       var m = u.m, need = u.cant * n;
