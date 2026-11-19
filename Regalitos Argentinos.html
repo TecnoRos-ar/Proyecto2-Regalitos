@@ -568,7 +568,7 @@ nav.tabs a{padding:9px 18px}
     });
     if(faltan.length){ show('No alcanza el stock. ' + faltan.join(' · '), 'warn'); return; }
     uso.forEach(function(u){
-      u.m.stock = Math.round(((+u.m.stock || 0) - u.cant * n) * 100) / 100;
+      u.m.stock = Math.round(((+u.m.stock || 0) - u.cant * n) * 1e6) / 1e6;
     });
     save(); refresh();
     show('Listo. Descontamos del stock los materiales de ' + n + (n === 1 ? ' pulsera.' : ' pulseras.'), 'ok');
