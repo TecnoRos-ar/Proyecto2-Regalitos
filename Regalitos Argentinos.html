@@ -508,7 +508,7 @@ nav.tabs a{padding:9px 18px}
     if(armed === key){ clearTimeout(armedTimer); armed = null; action(); return; }
     armed = key;
     var old = btn.textContent;
-    btn.textContent = '¿Seguro? Tocá otra vez';
+    btn.textContent = label || '¿Seguro? Tocá otra vez';
     btn.classList.add('armed');
     clearTimeout(armedTimer);
     armedTimer = setTimeout(function(){ armed = null; btn.textContent = old; btn.classList.remove('armed'); }, 3000);
@@ -522,7 +522,8 @@ nav.tabs a{padding:9px 18px}
       S.materiales.push({id:nid, nombre:'', unidad:'un', stock:0, precioCompra:0, cantCompra:1});
       pendingFocus = '[data-id="' + nid + '"][data-f="nombre"]'; save(); render();
     } else if(a === 'del-m'){
-      confirmTwice(b, 'm' + id, 'Borrar material', function(){
+      var usos = S.productos.filter(function(p){ return p.receta.some(function(r){ return r.matId === id; }); }).length;
+      confirmTwice(b, 'm' + id, usos ? 'Se usa en ' + usos + (usos === 1 ? ' pulsera' : ' pulseras') + '. Tocá otra vez para borrar' : '', function(){
         S.materiales = S.materiales.filter(function(m){ return m.id !== id; });
         S.productos.forEach(function(p){ p.receta = p.receta.filter(function(r){ return r.matId !== id; }); });
         save(); render();
@@ -532,7 +533,7 @@ nav.tabs a{padding:9px 18px}
       S.productos.push({id:pid, nombre:'', receta:[], manoObra:0, otros:0, ganTipo:'pct', ganValor:+S.config.margenDefault || 0});
       pendingFocus = '[data-id="' + pid + '"][data-f="nombre"]'; save(); render();
     } else if(a === 'del-p'){
-      confirmTwice(b, 'p' + id, 'Borrar pulsera', function(){
+      confirmTwice(b, 'p' + id, '', function(){
         S.productos = S.productos.filter(function(p){ return p.id !== id; });
         save(); render();
       });
