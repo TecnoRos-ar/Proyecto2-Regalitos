@@ -33,6 +33,22 @@ ni dependencias.
 La página pide dos fuentes a Google Fonts. Sin conexión funciona igual, con la fuente del
 sistema.
 
+## Pruebas
+La carpeta `qa/` tiene el trabajo de QA:
+
+- `qa/21.81-plan-de-pruebas.md`: plan, datos de prueba e inventario de casos.
+- `qa/21.81-hallazgos.md`: registro de defectos y dudas, con su estado.
+- `qa/ejecuciones/`: evidencia de cada corrida.
+- `qa/automatizacion/`: pruebas automáticas con Playwright. Ver su `README.md`.
+
+```bash
+cd qa/automatizacion
+./correr.sh instalar   # una vez
+./correr.sh            # corre todas las pruebas en un entorno aislado
+```
+
+Requiere Linux con `bwrap`, Node 20 o superior y Google Chrome.
+
 ## Pendiente de definir
 - Alcance funcional y criterios de aceptación.
 - Copia de seguridad o exportación de los datos.
