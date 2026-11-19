@@ -295,7 +295,7 @@ nav.tabs a{padding:9px 18px}
         var data = JSON.parse(JSON.stringify(persisted()));
         lastCanon = canon(data);
         if(dbDoc){ await dbDoc.set(data); }
-        else { try{ localStorage.setItem(LS, JSON.stringify(data)); }catch(e){} }
+        else { localStorage.setItem(LS, JSON.stringify(data)); }
       }
       setStatus(dbDoc ? 'Guardado' : 'Guardado en este navegador', 'ok');
     }catch(e){
