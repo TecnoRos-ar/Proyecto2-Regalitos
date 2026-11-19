@@ -488,7 +488,7 @@ nav.tabs a{padding:9px 18px}
     if(!f || !k || !loaded) return;
     var id = t.getAttribute('data-id');
     var v = t.value;
-    if(t.type === 'number'){ v = parseFloat(t.value); if(!isFinite(v)) v = 0; }
+    if(t.type === 'number'){ v = parseFloat(t.value); if(!isFinite(v)) v = 0; if(v < 0){ v = 0; t.value = 0; } }
     if(k === 'm'){ var m = byId(S.materiales, id); if(!m) return; m[f] = v; }
     else if(k === 'p'){ var p = byId(S.productos, id); if(!p) return; p[f] = v; }
     else if(k === 'i'){ var q = byId(S.productos, id); if(!q) return; var r = q.receta[+t.getAttribute('data-i')]; if(!r) return; r[f] = v; }
