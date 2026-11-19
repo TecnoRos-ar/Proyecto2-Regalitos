@@ -19,6 +19,9 @@ export class TarjetaMaterial {
   get costoUnitario() { return this.raiz.locator('[data-out^="mcost:"]'); }
   get valorDelStock() { return this.raiz.locator('[data-out^="mval:"]'); }
   get botonBorrar() { return this.raiz.locator('[data-a="del-m"]'); }
+  /* Campo o rótulo por su texto exacto: para comprobar los textos que dependen de la unidad. */
+  campo(etiqueta: string) { return this.raiz.getByLabel(etiqueta, { exact: true }); }
+  rotulo(texto: string) { return this.raiz.getByText(texto, { exact: true }); }
 }
 
 /* Tarjeta de un modelo en la pestaña "Pulseras". */
@@ -38,6 +41,8 @@ export class TarjetaPulsera {
   get capacidad() { return this.raiz.locator('[data-out^="pcap:"]'); }
   get mensaje() { return this.raiz.locator('[data-out^="pmsg:"]'); }
   get botonBorrar() { return this.raiz.locator('[data-a="del-p"]'); }
+  /* Textos de la lista de materiales de una fila de la receta. */
+  opcionesDeMaterial(fila = 0) { return this.filas.nth(fila).getByLabel('Material', { exact: true }).locator('option'); }
 
   async agregarFila(material: string, cantidad: number | string) {
     const n = await this.filas.count();

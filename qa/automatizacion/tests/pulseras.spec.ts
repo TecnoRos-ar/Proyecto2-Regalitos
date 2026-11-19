@@ -52,4 +52,29 @@ test.describe('Precio de venta', () => {
       await expect(clasica.ganancia).toHaveText(v.ganancia);
     });
   }
+
+  test('REG-PRE-02 cambiar el redondeo recalcula todas las pulseras @P0', async ({ taller, page }) => {
+    /* "Simple": un Cierre, sin extras, 100 % sobre el costo. Costo $ 150,00. */
+    const simple = await taller.agregarPulsera({ nombre: 'Simple', receta: [{ material: 'Cierre', cantidad: 1 }] });
+    const clasica = taller.pulsera(0);
+    await expect(clasica.precio).toHaveText('$ 800,00');
+    await expect(simple.precio).toHaveText('$ 300,00');
+
+    await taller.redondeo.selectOption('500');
+    await expect(clasica.precio).toHaveText('$ 1.000');
+    await expect(clasica.ganancia).toHaveText('Ganancia $ 600,00 · 60% del precio');
+    await expect(simple.precio).toHaveText('$ 500,00');
+    await expect(simple.ganancia).toHaveText('Ganancia $ 350,00 · 70% del precio');
+
+    await taller.redondeo.selectOption('0');
+    await expect(clasica.precio).toHaveText('$ 800,00');
+    await expect(simple.precio).toHaveText('$ 300,00');
+
+    await taller.redondeo.selectOption('500');
+    await expect(taller.estado).toHaveText('Guardado en este navegador');
+    await page.reload();
+    await expect(taller.redondeo).toHaveValue('500');
+    await expect(taller.pulsera(0).precio).toHaveText('$ 1.000');
+    await expect(taller.pulsera(1).precio).toHaveText('$ 500,00');
+  });
 });
