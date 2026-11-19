@@ -37,6 +37,7 @@ sistema.
 La carpeta `qa/` tiene el trabajo de QA:
 
 - `qa/21.81-plan-de-pruebas.md`: plan, datos de prueba e inventario de casos.
+- `qa/21.81-casos-p0.md`: los 18 casos P0, con pasos y resultado esperado.
 - `qa/21.81-hallazgos.md`: registro de defectos y dudas, con su estado.
 - `qa/ejecuciones/`: evidencia de cada corrida.
 - `qa/automatizacion/`: pruebas automáticas con Playwright. Ver su `README.md`.
