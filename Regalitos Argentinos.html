@@ -244,14 +244,25 @@ nav.tabs a{padding:9px 18px}
 
   /* ---------- cálculos ---------- */
   function unitCost(m){ return (+m.cantCompra > 0) ? (+m.precioCompra || 0) / +m.cantCompra : 0; }
-  function calc(p){
-    var mat = 0, cap = Infinity, lim = '';
+  /* Suma por material: el mismo material puede estar en más de una fila de la receta. */
+  function needs(p){
+    var list = [];
     p.receta.forEach(function(r){
       var m = byId(S.materiales, r.matId); if(!m) return;
-      mat += (+r.cant || 0) * unitCost(m);
-      if(+r.cant > 0){
-        var c = Math.floor((+m.stock || 0) / +r.cant + 1e-9);
-        if(c < cap){ cap = c; lim = m.nombre || 'material sin nombre'; }
+      var u = null;
+      for(var i = 0; i < list.length; i++){ if(list[i].m === m) u = list[i]; }
+      if(!u){ u = {m:m, cant:0}; list.push(u); }
+      u.cant += (+r.cant || 0);
+    });
+    return list;
+  }
+  function calc(p){
+    var mat = 0, cap = Infinity, lim = '';
+    needs(p).forEach(function(u){
+      mat += u.cant * unitCost(u.m);
+      if(u.cant > 0){
+        var c = Math.floor((+u.m.stock || 0) / u.cant + 1e-9);
+        if(c < cap){ cap = c; lim = u.m.nombre || 'material sin nombre'; }
       }
     });
     var extra = (+p.manoObra || 0) + (+p.otros || 0);
@@ -548,16 +559,14 @@ nav.tabs a{padding:9px 18px}
     var n = Math.floor(parseFloat(inp && inp.value));
     function show(text, cls){ msg.hidden = false; msg.className = 'msg ' + cls; msg.textContent = text; }
     if(!(n > 0)){ show('Poné cuántas pulseras armaste.', 'warn'); return; }
-    var faltan = [];
-    p.receta.forEach(function(r){
-      var m = byId(S.materiales, r.matId); if(!m) return;
-      var need = (+r.cant || 0) * n;
+    var faltan = [], uso = needs(p);
+    uso.forEach(function(u){
+      var m = u.m, need = u.cant * n;
       if((+m.stock || 0) < need - 1e-9) faltan.push((m.nombre || 'Material sin nombre') + ': te faltan ' + qty(need - (+m.stock || 0)) + ' ' + (UN[m.unidad] || UN.un).abbr);
     });
     if(faltan.length){ show('No alcanza el stock. ' + faltan.join(' · '), 'warn'); return; }
-    p.receta.forEach(function(r){
-      var m = byId(S.materiales, r.matId); if(!m) return;
-      m.stock = Math.round(((+m.stock || 0) - (+r.cant || 0) * n) * 100) / 100;
+    uso.forEach(function(u){
+      u.m.stock = Math.round(((+u.m.stock || 0) - u.cant * n) * 100) / 100;
     });
     save(); refresh();
     show('Listo. Descontamos del stock los materiales de ' + n + (n === 1 ? ' pulsera.' : ' pulseras.'), 'ok');
