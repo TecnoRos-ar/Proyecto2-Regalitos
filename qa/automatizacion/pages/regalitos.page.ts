@@ -72,6 +72,7 @@ export class RegalitosPage {
   readonly redondeo: Locator;
   readonly gananciaSugerida: Locator;
   readonly botonNuevoMaterial: Locator;
+  readonly avisoDeEjemplo: Locator;
 
   constructor(readonly page: Page, private readonly url: string) {
     this.estado = page.locator('#status');
@@ -80,6 +81,7 @@ export class RegalitosPage {
     this.redondeo = page.getByLabel('Redondear el precio hacia arriba a');
     this.gananciaSugerida = page.getByLabel('Ganancia sugerida para pulseras nuevas (%)');
     this.botonNuevoMaterial = page.getByRole('button', { name: '+ Nuevo material' });
+    this.avisoDeEjemplo = page.getByRole('status').filter({ hasText: 'Datos de ejemplo.' });
   }
 
   async abrir() {
@@ -134,6 +136,34 @@ export class RegalitosPage {
   /* Píxeles que sobresalen del ancho de la pantalla. */
   desbordeHorizontal() {
     return this.page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  }
+
+  /* Texto en negrita dentro de las tarjetas: no debe haberlo si un nombre trae HTML. */
+  get negritasEnTarjetas() { return this.tarjetas.locator('b'); }
+
+  /* Campos, listas y botones que un lector de pantalla anunciaría sin nombre. */
+  controlesSinNombre() {
+    return this.page.evaluate(() => [...document.querySelectorAll<HTMLElement>('input, select, button')]
+      .filter((e) => !((e as HTMLInputElement).labels?.length) && !e.getAttribute('aria-label') && !e.textContent?.trim())
+      .map((e) => e.outerHTML.slice(0, 80)));
+  }
+
+  /* true si un lector de pantalla anuncia los cambios de ese elemento. */
+  seAnuncia(elemento: Locator) {
+    return elemento.evaluate((e) => ['status', 'alert', 'log'].includes(e.getAttribute('role') ?? '')
+      || ['polite', 'assertive'].includes(e.getAttribute('aria-live') ?? ''));
+  }
+
+  /* Marca los datos guardados como "de ejemplo": el uso normal no lo hace nunca (REG-HAL-10). */
+  async marcarComoEjemplo() {
+    await this.page.evaluate(() => {
+      const clave = 'regalitos-argentinos-v1';
+      const datos = JSON.parse(localStorage.getItem(clave)!);
+      datos.ejemplo = true;
+      localStorage.setItem(clave, JSON.stringify(datos));
+    });
+    await this.page.reload();
+    await expect(this.estado).not.toHaveText('Cargando…');
   }
 
   /* Espera a que el cambio quede escrito en el navegador. */

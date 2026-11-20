@@ -94,6 +94,25 @@ test.describe('Pulseras', () => {
     await expect(clasica.capacidad).toHaveText('Con tu stock podés armar 10 pulseras (el que limita: Mostacillas).');
   });
 
+  test('REG-PUL-09 dos pulseras pueden llevar el mismo nombre @P2', async ({ taller, page }) => {
+    /* Comportamiento actual, leído del código. Falta que el equipo confirme si se permite. */
+    const segunda = await taller.agregarPulsera({ nombre: 'Clásica', receta: [], manoObra: 500 });
+    await expect(taller.tarjetas).toHaveCount(2);
+    await expect(segunda.costo).toHaveText('$ 500,00');
+    await expect(taller.pulsera(0).costo).toHaveText('$ 400,00');
+
+    await taller.esperarGuardado();
+    await page.reload();
+    await expect(taller.pulsera(0).nombre).toHaveValue('Clásica');
+    await expect(taller.pulsera(1).nombre).toHaveValue('Clásica');
+    await expect(taller.pulsera(1).costo).toHaveText('$ 500,00');
+
+    await taller.pulsera(1).botonBorrar.click();
+    await taller.pulsera(1).botonBorrar.click();
+    await expect(taller.tarjetas).toHaveCount(1);
+    await expect(taller.pulsera(0).costo).toHaveText('$ 400,00');
+  });
+
   test('REG-PUL-05 sin materia prima no se puede armar la receta @P1', async ({ regalitos }) => {
     const pulsera = await regalitos.agregarPulsera({ nombre: 'P1', receta: [] });
     await expect(pulsera.raiz.getByRole('button', { name: '+ Agregar material' })).toBeDisabled();

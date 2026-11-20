@@ -80,6 +80,35 @@ test.describe('Materia prima', () => {
     expect(await regalitos.desbordeHorizontal(), 'píxeles que sobresalen del ancho de la pantalla').toBeLessThanOrEqual(0);
   });
 
+  test('REG-MAT-09 un nombre con HTML, comillas y emojis se muestra como texto @P2', async ({ regalitos, page }) => {
+    const raro = `<b>Hilo</b> "doble" 'simple' & 🧵`;
+    const material = await regalitos.agregarMaterial({ nombre: raro, unidad: 'm', stock: 1, pague: 100, por: 10 });
+    await expect(material.nombre).toHaveValue(raro);
+
+    const pulsera = await regalitos.agregarPulsera({ nombre: raro, receta: [{ material: 'Hilo', cantidad: 2 }] });
+    await expect(pulsera.opcionesDeMaterial(0)).toHaveText([`${raro} · m`]);
+    await expect(pulsera.capacidad).toHaveText(`Con tu stock no alcanza para armar una (te falta: ${raro}).`);
+    await pulsera.armar(1);
+    await expect(pulsera.mensaje).toHaveText(`No alcanza el stock. ${raro}: te faltan 1 m`);
+    await expect(regalitos.negritasEnTarjetas).toHaveCount(0);
+
+    await regalitos.esperarGuardado();
+    await page.reload();
+    await expect(regalitos.pulsera().nombre).toHaveValue(raro);
+    await expect(regalitos.pulsera().opcionesDeMaterial(0)).toHaveText([`${raro} · m`]);
+    await expect(regalitos.negritasEnTarjetas).toHaveCount(0);
+  });
+
+  test('REG-MAT-10 un nombre de 200 caracteres no rompe el diseño (REG-HAL-22) @P2 @movil', async ({ regalitos }) => {
+    const largo = 'A'.repeat(200);
+    const material = await regalitos.agregarMaterial({ nombre: largo, unidad: 'm', stock: 1, pague: 100, por: 10 });
+    await expect(material.nombre).toHaveValue(largo);
+    expect.soft(await regalitos.desbordeHorizontal(), 'píxeles que sobresalen en "Materia prima"').toBeLessThanOrEqual(0);
+
+    await regalitos.agregarPulsera({ nombre: 'P1', receta: [{ material: largo, cantidad: 2 }] });
+    expect.soft(await regalitos.desbordeHorizontal(), 'píxeles que sobresalen en "Pulseras"').toBeLessThanOrEqual(0);
+  });
+
   test('REG-MAT-06 un material sin stock lo indica @P1', async ({ regalitos, page }) => {
     await regalitos.agregarMaterial({ ...hilo, stock: 0 });
     await expect(page.getByText('Sin stock')).toBeVisible();
