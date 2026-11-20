@@ -200,7 +200,7 @@ nav.tabs a{padding:9px 18px}
       <div><h1>Regalitos Argentinos</h1><small>Costos y stock de pulseras</small></div>
     </div>
     <div class="right">
-      <span id="status" class="busy">Cargando…</span>
+      <span id="status" class="busy" role="status">Cargando…</span>
       <nav class="tabs" aria-label="Secciones">
         <a href="#pulseras" id="t-pulseras">Pulseras</a>
         <a href="#materia-prima" id="t-materia-prima">Materia prima</a>
@@ -419,7 +419,7 @@ nav.tabs a{padding:9px 18px}
           '<div class="price"><small>Precio de venta</small><strong data-out="pprice:' + p.id + '"></strong><span class="gainchip" data-out="pgain:' + p.id + '"></span></div>' +
           '<p class="cap" data-out="pcap:' + p.id + '"></p>' +
           '<div class="prod"><label class="f">Armé (pulseras)<input type="text" class="num" inputmode="numeric" value="1" data-nid="' + p.id + '"></label><button class="btn" data-a="produce" data-id="' + p.id + '">Descontar del stock</button></div>' +
-          '<p class="msg" data-out="pmsg:' + p.id + '" hidden></p>' +
+          '<p class="msg" role="status" data-out="pmsg:' + p.id + '" hidden></p>' +
         '</section></div>' +
       '<div class="mfoot"><button class="linkbtn" data-a="del-p" data-id="' + p.id + '">Borrar pulsera</button></div></article>';
   }
