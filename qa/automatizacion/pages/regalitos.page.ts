@@ -127,10 +127,11 @@ export class RegalitosPage {
     return t;
   }
 
-  /* Stock de cada material, en el orden de carga. Deja la pestaña "Materia prima". */
+  /* Stock de cada material, en el orden de carga, como número: el campo puede mostrarlo
+     con coma o con punto. Deja la pestaña "Materia prima". */
   async stocks() {
     await this.irAMateriaPrima();
-    return this.page.getByLabel(/^Stock actual/).evaluateAll((campos) => campos.map((c) => (c as HTMLInputElement).value));
+    return this.page.getByLabel(/^Stock actual/).evaluateAll((campos) => campos.map((c) => Number((c as HTMLInputElement).value.replace(',', '.'))));
   }
 
   /* Píxeles que sobresalen del ancho de la pantalla. */

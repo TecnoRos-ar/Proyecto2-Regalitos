@@ -70,6 +70,9 @@ test.describe('Materia prima', () => {
     await material.stock.fill('');
     await material.stock.pressSequentially('0,5');
     await expect(material.valorDelStock, 'valor del stock tras escribir "0,5"').toHaveText('$ 5,00');
+    /* Con coma decimal, los puntos son separadores de miles: 1.234,5 × $ 10 = $ 12.345. */
+    await material.stock.fill('1.234,5');
+    await expect(material.valorDelStock, 'valor del stock tras escribir "1.234,5"').toHaveText('$ 12.345');
   });
 
   test('REG-MAT-08 un importe muy grande no rompe la pantalla @P1 @movil', async ({ regalitos }) => {

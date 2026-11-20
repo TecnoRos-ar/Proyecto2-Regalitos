@@ -21,7 +21,7 @@ test.describe('Pulseras', () => {
     await expect(pulsera.capacidad).toHaveText('Con tu stock no alcanza para armar una (te falta: Hilo).');
     await pulsera.armar(1);
     await expect(pulsera.mensaje).toHaveText('No alcanza el stock. Hilo: te faltan 0,5 m');
-    expect(await regalitos.stocks()).toEqual(['1.5']);
+    expect(await regalitos.stocks()).toEqual([1.5]);
   });
 
   test('REG-PUL-03 no acepta una cantidad de receta negativa @P0', async ({ regalitos }) => {
@@ -30,7 +30,7 @@ test.describe('Pulseras', () => {
     await expect(pulsera.filas.first().getByLabel('Cantidad')).toHaveValue('0');
     await expect(pulsera.costo).toHaveText('$ 0,00');
     await pulsera.armar(1);
-    expect(await regalitos.stocks()).toEqual(['10']);
+    expect(await regalitos.stocks()).toEqual([10]);
   });
 
   test('REG-PUL-04 una pulsera sin receta calcula su costo con los extras @P1', async ({ regalitos }) => {

@@ -32,7 +32,7 @@ test.describe('Arranque', () => {
     await expect(taller.avisoDeEjemplo).toContainText('Cambiá los números por los tuyos o empezá de cero.');
     await page.getByRole('button', { name: 'Usar como base' }).click();
     await expect(taller.avisoDeEjemplo).toHaveCount(0);
-    expect(await taller.stocks()).toEqual(['50', '200', '10']);
+    expect(await taller.stocks()).toEqual([50, 200, 10]);
 
     await taller.irAPulseras();
     await taller.redondeo.selectOption('500');

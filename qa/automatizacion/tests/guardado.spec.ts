@@ -11,7 +11,7 @@ test.describe('Guardado', () => {
     await expect(clasica.nombre).toHaveValue('Clásica');
     await expect(clasica.costo).toHaveText('$ 400,00');
     await expect(clasica.precio).toHaveText('$ 800,00');
-    expect(await taller.stocks()).toEqual(['50', '200', '10']);
+    expect(await taller.stocks()).toEqual([50, 200, 10]);
   });
 
   test('REG-PER-02 avisa cuando no se puede guardar @P0', async ({ regalitos, page }) => {
@@ -31,7 +31,7 @@ test.describe('Guardado', () => {
     await taller.material(0).stock.fill('40');
     await taller.esperarGuardado();
     /* La otra pestaña no se entera del cambio. */
-    expect(await otra.stocks()).toEqual(['50', '200', '10']);
+    expect(await otra.stocks()).toEqual([50, 200, 10]);
 
     await otra.material(1).stock.fill('100');
     await otra.esperarGuardado();
@@ -41,7 +41,7 @@ test.describe('Guardado', () => {
        definido: hoy gana la última que guarda y se pierde el stock 40. No se afirma. */
     const enPrimera = await taller.stocks();
     expect(await otra.stocks()).toEqual(enPrimera);
-    expect(enPrimera[1]).toBe('100');
+    expect(enPrimera[1]).toBe(100);
   });
 
   test('REG-PER-03 con datos guardados dañados abre vacía @P1', async ({ regalitos, page }) => {
