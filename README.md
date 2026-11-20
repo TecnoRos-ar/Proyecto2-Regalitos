@@ -12,6 +12,16 @@ ni dependencias.
    precio de venta y cuántas pulseras alcanza a armar el stock.
 4. Al armar pulseras, indicar cuántas y pulsar **Descontar del stock**.
 
+## Cómo se escriben los números
+- Los decimales se pueden escribir con coma o con punto: `0,5` y `0.5` valen lo mismo.
+- Si el número lleva coma, los puntos se leen como separadores de miles: `1.234,5` es
+  1234,5.
+- Si no lleva coma, el punto es decimal: `1.234` es 1,234, no mil doscientos treinta y
+  cuatro. Para escribir miles, no usar punto o agregar la coma: `1234` o `1.234,0`.
+- La página muestra los valores con coma decimal y sin separador de miles.
+- Un valor negativo o que no es un número pasa a 0.
+- "Armé (pulseras)" solo acepta un número entero, de 1 en adelante.
+
 ## Reglas de cálculo
 - Costo unitario del material = lo pagado / la cantidad comprada.
 - Costo de la pulsera = materiales de la receta + mano de obra + packaging y otros.
