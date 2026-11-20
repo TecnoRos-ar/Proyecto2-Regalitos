@@ -449,6 +449,13 @@ nav.tabs a{padding:9px 18px}
   function render(){
     armed = null; clearTimeout(armedTimer);
     updateTabs();
+    /* Al redibujar se reemplaza todo: se recuerda qué tenía el foco para devolvérselo. */
+    var act = document.activeElement, inApp = !!act && app.contains(act), keep = '';
+    if(inApp){
+      ['data-k', 'data-id', 'data-i', 'data-f', 'data-a', 'data-nid'].forEach(function(a){
+        if(act.hasAttribute(a)) keep += '[' + a + '="' + act.getAttribute(a) + '"]';
+      });
+    }
     var h;
     if(!loaded) h = '<p class="loading">Cargando tus datos…</p>';
     else h = banner() + (tab === 'materia-prima' ? matsView() : prodsView());
@@ -460,6 +467,11 @@ nav.tabs a{padding:9px 18px}
       var el = app.querySelector(pendingFocus);
       if(el){ el.focus(); el.scrollIntoView({block:'center'}); }
       pendingFocus = null;
+    } else if(inApp){
+      var again = null;
+      try{ again = keep ? app.querySelector(keep) : null; }catch(e){}
+      if(!again) again = app.querySelector('[data-a="add-m"], [data-a="add-p"]');
+      if(again) again.focus({preventScroll:true});
     }
   }
   function put(key, text){ if(outs[key]) outs[key].textContent = text; }
