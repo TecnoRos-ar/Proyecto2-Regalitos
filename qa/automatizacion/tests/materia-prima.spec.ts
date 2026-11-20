@@ -50,6 +50,36 @@ test.describe('Materia prima', () => {
     await expect(material.por).toHaveValue('0');
   });
 
+  test('REG-MAT-05 un material sin nombre se identifica en la receta y en los mensajes @P1', async ({ regalitos }) => {
+    const material = await regalitos.agregarMaterial({ nombre: '', unidad: 'un', stock: 10, pague: 100, por: 10 });
+    await expect(material.costoUnitario).toHaveText('$ 10,00 / un');
+    await expect(material.valorDelStock).toHaveText('$ 100,00');
+
+    const pulsera = await regalitos.agregarPulsera({ nombre: 'P1', receta: [{ material: '(sin nombre)', cantidad: 1 }] });
+    await expect(pulsera.opcionesDeMaterial(0)).toHaveText(['(sin nombre) · un']);
+    await expect(pulsera.capacidad).toHaveText('Con tu stock podés armar 10 pulseras (el que limita: material sin nombre).');
+    await pulsera.armar(11);
+    await expect(pulsera.mensaje).toHaveText('No alcanza el stock. Material sin nombre: te faltan 1 un');
+  });
+
+  test('REG-MAT-07 la coma y el punto decimal dan el mismo valor (REG-HAL-19) @P1', async ({ regalitos }) => {
+    const material = await regalitos.agregarMaterial({ nombre: 'Hilo', unidad: 'm', stock: 0, pague: 100, por: 10 });
+    await material.stock.fill('');
+    await material.stock.pressSequentially('0.5');
+    await expect(material.valorDelStock).toHaveText('$ 5,00');
+    await material.stock.fill('');
+    await material.stock.pressSequentially('0,5');
+    await expect(material.valorDelStock, 'valor del stock tras escribir "0,5"').toHaveText('$ 5,00');
+  });
+
+  test('REG-MAT-08 un importe muy grande no rompe la pantalla @P1 @movil', async ({ regalitos }) => {
+    const material = await regalitos.agregarMaterial({ nombre: 'Grande', unidad: 'un', stock: 999999999, pague: 999999999, por: 1 });
+    await expect(material.costoUnitario).toHaveText('$ 999.999.999 / un');
+    /* 999999999² no entra exacto en un número de JavaScript: se acepta la diferencia de precisión. */
+    await expect(material.valorDelStock).toHaveText('$ 999.999.998.000.000.000');
+    expect(await regalitos.desbordeHorizontal(), 'píxeles que sobresalen del ancho de la pantalla').toBeLessThanOrEqual(0);
+  });
+
   test('REG-MAT-06 un material sin stock lo indica @P1', async ({ regalitos, page }) => {
     await regalitos.agregarMaterial({ ...hilo, stock: 0 });
     await expect(page.getByText('Sin stock')).toBeVisible();

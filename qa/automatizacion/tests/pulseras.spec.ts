@@ -33,6 +33,67 @@ test.describe('Pulseras', () => {
     expect(await regalitos.stocks()).toEqual(['10']);
   });
 
+  test('REG-PUL-04 una pulsera sin receta calcula su costo con los extras @P1', async ({ regalitos }) => {
+    const sola = await regalitos.agregarPulsera({ nombre: 'Sola', receta: [], manoObra: 100, otros: 35 });
+    await expect(sola.materiales).toHaveText('$ 0,00');
+    await expect(sola.extras).toHaveText('$ 135,00');
+    await expect(sola.costo).toHaveText('$ 135,00');
+    await expect(sola.precio).toHaveText('$ 300,00');
+    await expect(sola.ganancia).toHaveText('Ganancia $ 165,00 · 55% del precio');
+    await expect(sola.capacidad).toHaveText('Agregá materiales para ver cuántas podés armar con tu stock.');
+    /* "Descontar del stock" sin receta: sin esperado definido (REG-HAL-21). No se afirma. */
+  });
+
+  test('REG-PUL-06 cambiar el material de una fila cambia unidad, subtotal y totales @P1', async ({ taller }) => {
+    const clasica = taller.pulsera();
+    const opcion = (texto: string) => clasica.opcionesDeMaterial(0).filter({ hasText: texto }).getAttribute('value');
+    await clasica.materialDeFila(0).selectOption((await opcion('Mostacillas'))!);
+    await expect(clasica.unidadDeFila(0)).toHaveText('un');
+    await expect(clasica.subtotalDeFila(0)).toHaveText('$ 2,00');
+    await expect(clasica.materiales).toHaveText('$ 232,00');
+    await expect(clasica.costo).toHaveText('$ 367,00');
+    await expect(clasica.precio).toHaveText('$ 800,00');
+    await expect(clasica.ganancia).toHaveText('Ganancia $ 433,00 · 54,13% del precio');
+    /* Las dos filas de Mostacillas suman 20,5: 200 / 20,5 = 9. */
+    await expect(clasica.capacidad).toHaveText('Con tu stock podés armar 9 pulseras (el que limita: Mostacillas).');
+
+    await clasica.materialDeFila(0).selectOption((await opcion('Hilo encerado'))!);
+    await expect(clasica.subtotalDeFila(0)).toHaveText('$ 35,00');
+    await expect(clasica.costo).toHaveText('$ 400,00');
+    await expect(clasica.capacidad).toHaveText('Con tu stock podés armar 10 pulseras (el que limita: Mostacillas).');
+  });
+
+  test('REG-PUL-07 quitar una fila recalcula costo, precio y capacidad @P1', async ({ taller, page }) => {
+    const clasica = taller.pulsera();
+    await clasica.quitarFila(2).click();
+    await expect(clasica.filas).toHaveCount(2);
+    await expect(clasica.materiales).toHaveText('$ 115,00');
+    await expect(clasica.costo).toHaveText('$ 250,00');
+    await expect(clasica.precio).toHaveText('$ 500,00');
+    await expect(clasica.ganancia).toHaveText('Ganancia $ 250,00 · 50% del precio');
+    await expect(clasica.capacidad).toHaveText('Con tu stock podés armar 10 pulseras (el que limita: Mostacillas).');
+    await taller.esperarGuardado();
+    await page.reload();
+    await expect(taller.pulsera().filas).toHaveCount(2);
+  });
+
+  test('REG-PUL-08 cambiar el precio de compra recalcula las pulseras @P1', async ({ taller }) => {
+    await taller.irAMateriaPrima();
+    const hiloEncerado = taller.material(0);
+    await hiloEncerado.pague.fill('7000');
+    await expect(hiloEncerado.costoUnitario).toHaveText('$ 140,00 / m');
+    await expect(hiloEncerado.valorDelStock).toHaveText('$ 7.000');
+    await expect(taller.valorTotalDelStock).toHaveText('$ 9.300');
+
+    await taller.irAPulseras();
+    const clasica = taller.pulsera();
+    await expect(clasica.materiales).toHaveText('$ 300,00');
+    await expect(clasica.costo).toHaveText('$ 435,00');
+    await expect(clasica.precio).toHaveText('$ 900,00');
+    await expect(clasica.ganancia).toHaveText('Ganancia $ 465,00 · 51,67% del precio');
+    await expect(clasica.capacidad).toHaveText('Con tu stock podés armar 10 pulseras (el que limita: Mostacillas).');
+  });
+
   test('REG-PUL-05 sin materia prima no se puede armar la receta @P1', async ({ regalitos }) => {
     const pulsera = await regalitos.agregarPulsera({ nombre: 'P1', receta: [] });
     await expect(pulsera.raiz.getByRole('button', { name: '+ Agregar material' })).toBeDisabled();
@@ -52,6 +113,45 @@ test.describe('Precio de venta', () => {
       await expect(clasica.ganancia).toHaveText(v.ganancia);
     });
   }
+
+  test('REG-PRE-03 la ganancia sugerida vale para las pulseras nuevas y no cambia las existentes @P1', async ({ taller, page }) => {
+    await taller.gananciaSugerida.fill('50');
+    const clasica = taller.pulsera(0);
+    await expect(clasica.valorDeGanancia).toHaveValue('100');
+    await expect(clasica.precio).toHaveText('$ 800,00');
+
+    const nueva = await taller.agregarPulsera({ nombre: 'Nueva', receta: [] });
+    await expect(nueva.tipoDeGanancia).toHaveValue('pct');
+    await expect(nueva.valorDeGanancia).toHaveValue('50');
+
+    await taller.esperarGuardado();
+    await page.reload();
+    await expect(taller.gananciaSugerida).toHaveValue('50');
+  });
+
+  test('REG-PRE-04 cambiar de % a $ fija conserva el número @P1', async ({ taller }) => {
+    /* Comportamiento actual, leído del código. Falta que el equipo confirme si es el esperado. */
+    const clasica = taller.pulsera();
+    await clasica.tipoDeGanancia.selectOption('fija');
+    await expect(clasica.rotulo('Monto ($)')).toBeVisible();
+    await expect(clasica.valorDeGanancia).toHaveValue('100');
+    await expect(clasica.precio).toHaveText('$ 500,00');
+    await expect(clasica.ganancia).toHaveText('Ganancia $ 100,00 · 20% del precio');
+
+    await clasica.tipoDeGanancia.selectOption('pct');
+    await expect(clasica.valorDeGanancia).toHaveValue('100');
+    await expect(clasica.precio).toHaveText('$ 800,00');
+  });
+
+  test('REG-PRE-05 la ganancia se carga sobre el costo y se muestra sobre el precio (REG-HAL-13) @P1', async ({ taller }) => {
+    /* Comportamiento actual. Falta que el equipo confirme qué porcentaje quiere mostrar. */
+    const clasica = taller.pulsera();
+    await expect(clasica.valorDeGanancia).toHaveValue('100');
+    await expect(clasica.ganancia).toHaveText('Ganancia $ 400,00 · 50% del precio');
+    await clasica.valorDeGanancia.fill('50');
+    await expect(clasica.precio).toHaveText('$ 600,00');
+    await expect(clasica.ganancia).toHaveText('Ganancia $ 200,00 · 33,33% del precio');
+  });
 
   test('REG-PRE-02 cambiar el redondeo recalcula todas las pulseras @P0', async ({ taller, page }) => {
     /* "Simple": un Cierre, sin extras, 100 % sobre el costo. Costo $ 150,00. */

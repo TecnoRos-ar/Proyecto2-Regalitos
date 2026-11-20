@@ -33,6 +33,7 @@ aislado() {
   bwrap --unshare-all --share-net --die-with-parent \
     --ro-bind /usr /usr --ro-bind /opt /opt --ro-bind /etc/fonts /etc/fonts \
     --ro-bind /etc/resolv.conf /etc/resolv.conf --ro-bind /etc/ssl /etc/ssl \
+    --ro-bind-try /etc/localtime /etc/localtime \
     --ro-bind /etc/ca-certificates /etc/ca-certificates --ro-bind /etc/hosts /etc/hosts \
     --symlink usr/lib /lib --symlink usr/lib /lib64 --symlink usr/bin /bin \
     --proc /proc --dev /dev --tmpfs /tmp --tmpfs /home/aislado --setenv HOME /home/aislado \

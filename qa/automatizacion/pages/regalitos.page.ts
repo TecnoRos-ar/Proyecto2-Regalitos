@@ -43,6 +43,11 @@ export class TarjetaPulsera {
   get botonBorrar() { return this.raiz.locator('[data-a="del-p"]'); }
   /* Textos de la lista de materiales de una fila de la receta. */
   opcionesDeMaterial(fila = 0) { return this.filas.nth(fila).getByLabel('Material', { exact: true }).locator('option'); }
+  materialDeFila(fila = 0) { return this.filas.nth(fila).getByLabel('Material', { exact: true }); }
+  unidadDeFila(fila = 0) { return this.filas.nth(fila).locator('.u'); }
+  subtotalDeFila(fila = 0) { return this.filas.nth(fila).locator('.isub'); }
+  quitarFila(fila = 0) { return this.filas.nth(fila).getByRole('button', { name: 'Quitar material' }); }
+  rotulo(texto: string) { return this.raiz.getByText(texto, { exact: true }); }
 
   async agregarFila(material: string, cantidad: number | string) {
     const n = await this.filas.count();
@@ -65,12 +70,16 @@ export class RegalitosPage {
   readonly tarjetas: Locator;
   readonly valorTotalDelStock: Locator;
   readonly redondeo: Locator;
+  readonly gananciaSugerida: Locator;
+  readonly botonNuevoMaterial: Locator;
 
   constructor(readonly page: Page, private readonly url: string) {
     this.estado = page.locator('#status');
     this.tarjetas = page.locator('article.card');
     this.valorTotalDelStock = page.locator('[data-out="msum"]');
     this.redondeo = page.getByLabel('Redondear el precio hacia arriba a');
+    this.gananciaSugerida = page.getByLabel('Ganancia sugerida para pulseras nuevas (%)');
+    this.botonNuevoMaterial = page.getByRole('button', { name: '+ Nuevo material' });
   }
 
   async abrir() {
@@ -121,6 +130,14 @@ export class RegalitosPage {
     await this.irAMateriaPrima();
     return this.page.getByLabel(/^Stock actual/).evaluateAll((campos) => campos.map((c) => (c as HTMLInputElement).value));
   }
+
+  /* Píxeles que sobresalen del ancho de la pantalla. */
+  desbordeHorizontal() {
+    return this.page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  }
+
+  /* Espera a que el cambio quede escrito en el navegador. */
+  async esperarGuardado() { await expect(this.estado).toHaveText('Guardado en este navegador'); }
 
   datosGuardados() {
     return this.page.evaluate(() => JSON.parse(localStorage.getItem('regalitos-argentinos-v1') ?? 'null'));
