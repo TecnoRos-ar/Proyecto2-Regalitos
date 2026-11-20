@@ -87,7 +87,7 @@ nav.tabs a:focus-visible, .btn:focus-visible, .icon:focus-visible{outline:2px so
 
 label.f{display:flex; flex-direction:column; gap:4px; font-size:12px; color:var(--muted); font-weight:500; min-width:0}
 input,select{font:inherit; color:var(--fg); background:var(--surface); border:1px solid var(--line); border-radius:8px; padding:8px 10px; width:100%; min-width:0}
-input[type=number]{font-variant-numeric:tabular-nums}
+input.num{font-variant-numeric:tabular-nums}
 input:focus-visible,select:focus-visible{outline:2px solid var(--accent); outline-offset:1px; border-color:var(--accent)}
 .mgrid{display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:12px; align-items:end}
 .f-name{grid-column:1/-1}
@@ -122,8 +122,8 @@ dl.lines .tot{font-weight:600; color:var(--fg)}
 .msg{font-size:13px; border-radius:8px; padding:8px 12px}
 .msg.ok{background:var(--ok-soft); color:var(--ok)} .msg.warn{background:var(--warn-soft); color:var(--warn)}
 .cfg{display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:12px; background:var(--panel); border-radius:12px; padding:14px 16px}
-input[type=number]{-moz-appearance:textfield; appearance:textfield}
-input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none; margin:0}
+input.num{-moz-appearance:textfield; appearance:textfield}
+input.num::-webkit-inner-spin-button,input.num::-webkit-outer-spin-button{-webkit-appearance:none; margin:0}
 
 /* Ritmo y acabado: más aire entre bloques, sombra suave, jerarquía de títulos */
 :root{--shadow:0 1px 2px rgba(24,32,54,.05), 0 12px 28px -16px rgba(24,32,54,.18)}
@@ -241,6 +241,14 @@ nav.tabs a{padding:9px 18px}
   var nq = new Intl.NumberFormat('es-AR', {maximumFractionDigits:2});
   function money(n){ n = +n || 0; return Math.abs(n) >= 1000 ? nf0.format(n) : nf2.format(n); }
   function qty(n){ return nq.format(+n || 0); }
+  /* Los campos numéricos son de texto: aceptan coma o punto decimal en cualquier navegador. */
+  function num(s){
+    s = String(s == null ? '' : s).replace(/\s/g, '');
+    if(s.indexOf(',') >= 0) s = s.replace(/\./g, '').replace(',', '.');
+    var v = parseFloat(s);
+    return isFinite(v) ? v : 0;
+  }
+  function nv(n){ return String(+n || 0).replace('.', ','); }
 
   /* ---------- cálculos ---------- */
   function unitCost(m){ return (+m.cantCompra > 0) ? (+m.precioCompra || 0) / +m.cantCompra : 0; }
@@ -356,9 +364,9 @@ nav.tabs a{padding:9px 18px}
     return '<article class="card"><div class="mgrid">' +
       '<label class="f f-name">Nombre<span><input data-k="m" data-id="' + m.id + '" data-f="nombre" value="' + esc(m.nombre) + '" placeholder="Ej: Hilo encerado negro"></span></label>' +
       '<label class="f">Se mide en<select data-k="m" data-id="' + m.id + '" data-f="unidad">' + unitOptions(m.unidad) + '</select></label>' +
-      '<label class="f">Stock actual (' + u.long + ')<input type="number" inputmode="decimal" step="any" min="0" data-k="m" data-id="' + m.id + '" data-f="stock" value="' + (+m.stock || 0) + '"></label>' +
-      '<label class="f">Pagué ($)<input type="number" inputmode="decimal" step="any" min="0" data-k="m" data-id="' + m.id + '" data-f="precioCompra" value="' + (+m.precioCompra || 0) + '"></label>' +
-      '<label class="f">por (' + u.long + ')<input type="number" inputmode="decimal" step="any" min="0" data-k="m" data-id="' + m.id + '" data-f="cantCompra" value="' + (+m.cantCompra || 0) + '"></label>' +
+      '<label class="f">Stock actual (' + u.long + ')<input type="text" class="num" inputmode="decimal" data-k="m" data-id="' + m.id + '" data-f="stock" value="' + nv(m.stock) + '\"></label>' +
+      '<label class="f">Pagué ($)<input type="text" class="num" inputmode="decimal" data-k="m" data-id="' + m.id + '" data-f="precioCompra" value="' + nv(m.precioCompra) + '\"></label>' +
+      '<label class="f">por (' + u.long + ')<input type="text" class="num" inputmode="decimal" data-k="m" data-id="' + m.id + '" data-f="cantCompra" value="' + nv(m.cantCompra) + '\"></label>' +
       '<div class="calc"><span>Costo por ' + (m.unidad === 'm' ? 'metro' : m.unidad === 'g' ? 'gramo' : 'unidad') + '</span><strong data-out="mcost:' + m.id + '"></strong></div>' +
       '<div class="calc"><span>Valor del stock <span class="chip" data-out="mst:' + m.id + '" hidden></span></span><strong data-out="mval:' + m.id + '"></strong></div>' +
       '</div><div class="mfoot"><button class="linkbtn" data-a="del-m" data-id="' + m.id + '">Borrar material</button></div></article>';
@@ -388,7 +396,7 @@ nav.tabs a{padding:9px 18px}
       var m = byId(S.materiales, r.matId);
       var d = 'data-k="i" data-id="' + p.id + '" data-i="' + i + '"';
       return '<div class="ing"><select aria-label="Material" ' + d + ' data-f="matId">' + matOptions(r.matId) + '</select>' +
-        '<div class="qty"><input type="number" inputmode="decimal" step="any" min="0" aria-label="Cantidad" ' + d + ' data-f="cant" value="' + (+r.cant || 0) + '"><span class="u">' + (m ? (UN[m.unidad] || UN.un).abbr : '') + '</span></div>' +
+        '<div class="qty"><input type="text" class="num" inputmode="decimal" aria-label="Cantidad" ' + d + ' data-f="cant" value="' + nv(r.cant) + '\"><span class="u">' + (m ? (UN[m.unidad] || UN.un).abbr : '') + '</span></div>' +
         '<span class="isub" data-out="isub:' + p.id + ':' + i + '"></span>' +
         '<button class="icon" aria-label="Quitar material" data-a="del-i" data-id="' + p.id + '" data-i="' + i + '">×</button></div>';
     }).join('');
@@ -400,17 +408,17 @@ nav.tabs a{padding:9px 18px}
           '<div><button class="btn" data-a="add-i" data-id="' + p.id + '"' + (S.materiales.length ? '' : ' disabled') + '>+ Agregar material</button>' +
           (S.materiales.length ? '' : ' <span class="muted">Primero cargá materia prima.</span>') + '</div>' +
           '<div class="extras">' +
-            '<label class="f">Mano de obra ($)<input type="number" inputmode="decimal" step="any" min="0" ' + dd + ' data-f="manoObra" value="' + (+p.manoObra || 0) + '"></label>' +
-            '<label class="f">Packaging y otros ($)<input type="number" inputmode="decimal" step="any" min="0" ' + dd + ' data-f="otros" value="' + (+p.otros || 0) + '"></label>' +
+            '<label class="f">Mano de obra ($)<input type="text" class="num" inputmode="decimal" ' + dd + ' data-f="manoObra" value="' + nv(p.manoObra) + '\"></label>' +
+            '<label class="f">Packaging y otros ($)<input type="text" class="num" inputmode="decimal" ' + dd + ' data-f="otros" value="' + nv(p.otros) + '\"></label>' +
           '</div></section>' +
         '<section class="result">' +
           '<dl class="lines"><dt>Materiales</dt><dd data-out="pmat:' + p.id + '"></dd><dt>Mano de obra y otros</dt><dd data-out="pextra:' + p.id + '"></dd>' +
           '<dt class="tot">Costo del producto terminado</dt><dd class="tot" data-out="pcost:' + p.id + '"></dd></dl>' +
           '<div class="gainrow"><label class="f">Ganancia<select ' + dd + ' data-f="ganTipo"><option value="pct"' + (p.ganTipo !== 'fija' ? ' selected' : '') + '>% sobre el costo</option><option value="fija"' + (p.ganTipo === 'fija' ? ' selected' : '') + '>$ fija por pulsera</option></select></label>' +
-          '<label class="f">' + (p.ganTipo === 'fija' ? 'Monto ($)' : 'Porcentaje (%)') + '<input type="number" inputmode="decimal" step="any" min="0" ' + dd + ' data-f="ganValor" value="' + (+p.ganValor || 0) + '"></label></div>' +
+          '<label class="f">' + (p.ganTipo === 'fija' ? 'Monto ($)' : 'Porcentaje (%)') + '<input type="text" class="num" inputmode="decimal" ' + dd + ' data-f="ganValor" value="' + nv(p.ganValor) + '\"></label></div>' +
           '<div class="price"><small>Precio de venta</small><strong data-out="pprice:' + p.id + '"></strong><span class="gainchip" data-out="pgain:' + p.id + '"></span></div>' +
           '<p class="cap" data-out="pcap:' + p.id + '"></p>' +
-          '<div class="prod"><label class="f">Armé (pulseras)<input type="number" inputmode="numeric" step="1" min="1" value="1" data-nid="' + p.id + '"></label><button class="btn" data-a="produce" data-id="' + p.id + '">Descontar del stock</button></div>' +
+          '<div class="prod"><label class="f">Armé (pulseras)<input type="text" class="num" inputmode="numeric" value="1" data-nid="' + p.id + '"></label><button class="btn" data-a="produce" data-id="' + p.id + '">Descontar del stock</button></div>' +
           '<p class="msg" data-out="pmsg:' + p.id + '" hidden></p>' +
         '</section></div>' +
       '<div class="mfoot"><button class="linkbtn" data-a="del-p" data-id="' + p.id + '">Borrar pulsera</button></div></article>';
@@ -418,7 +426,7 @@ nav.tabs a{padding:9px 18px}
   function prodsView(){
     var h = '<div class="bar"><div><h2>Pulseras</h2><p class="sub">Armá la receta de cada modelo y mirá cuánto te cuesta y a cuánto conviene venderla.</p></div>' +
       '<button class="btn primary" data-a="add-p">+ Nueva pulsera</button></div>';
-    h += '<div class="cfg"><label class="f">Ganancia sugerida para pulseras nuevas (%)<input type="number" inputmode="decimal" step="any" min="0" data-k="c" data-f="margenDefault" value="' + (+S.config.margenDefault || 0) + '"></label>' +
+    h += '<div class="cfg"><label class="f">Ganancia sugerida para pulseras nuevas (%)<input type="text" class="num" inputmode="decimal" data-k="c" data-f="margenDefault" value="' + nv(S.config.margenDefault) + '\"></label>' +
       '<label class="f">Redondear el precio hacia arriba a<select data-k="c" data-f="redondeo">' +
       [[0,'Sin redondeo'],[10,'Múltiplos de $10'],[50,'Múltiplos de $50'],[100,'Múltiplos de $100'],[500,'Múltiplos de $500']].map(function(o){
         return '<option value="' + o[0] + '"' + (+S.config.redondeo === o[0] ? ' selected' : '') + '>' + o[1] + '</option>';
@@ -489,7 +497,7 @@ nav.tabs a{padding:9px 18px}
     if(!f || !k || !loaded) return;
     var id = t.getAttribute('data-id');
     var v = t.value;
-    if(t.type === 'number'){ v = parseFloat(t.value); if(!isFinite(v)) v = 0; if(v < 0){ v = 0; t.value = 0; } }
+    if(t.classList.contains('num')){ v = num(t.value); if(v < 0){ v = 0; t.value = 0; } }
     if(k === 'm'){ var m = byId(S.materiales, id); if(!m) return; m[f] = v; }
     else if(k === 'p'){ var p = byId(S.productos, id); if(!p) return; p[f] = v; }
     else if(k === 'i'){ var q = byId(S.productos, id); if(!q) return; var r = q.receta[+t.getAttribute('data-i')]; if(!r) return; r[f] = v; }
@@ -500,7 +508,7 @@ nav.tabs a{padding:9px 18px}
 
   app.addEventListener('focusin', function(e){
     var t = e.target;
-    if(t.tagName === 'INPUT' && t.type === 'number'){ try{ t.select(); }catch(err){} }
+    if(t.tagName === 'INPUT' && t.classList.contains('num')){ try{ t.select(); }catch(err){} }
   });
 
   var armed = null, armedTimer = null;
@@ -558,7 +566,7 @@ nav.tabs a{padding:9px 18px}
     var p = byId(S.productos, id); if(!p) return;
     var inp = app.querySelector('[data-nid="' + id + '"]');
     var msg = outs['pmsg:' + id];
-    var n = parseFloat(inp && inp.value);
+    var n = num(inp && inp.value);
     function show(text, cls){ msg.hidden = false; msg.className = 'msg ' + cls; msg.textContent = text; }
     if(!(n > 0)){ show('Poné cuántas pulseras armaste.', 'warn'); return; }
     if(n !== Math.floor(n)){ show('Poné un número entero de pulseras.', 'warn'); return; }
