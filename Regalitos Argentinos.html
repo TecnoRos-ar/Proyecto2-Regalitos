@@ -81,7 +81,7 @@ nav.tabs a:focus-visible, .btn:focus-visible, .icon:focus-visible{outline:2px so
 .note .btn{background:transparent; color:inherit; border-color:currentColor}
 .note div{display:flex; gap:8px; flex-wrap:wrap}
 .stat{display:flex; flex-wrap:wrap; align-items:baseline; gap:6px 14px; background:var(--panel); border-radius:12px; padding:12px 16px}
-.stat strong{font:700 22px var(--f-display)}
+.stat strong{font:700 22px var(--f-display); overflow-wrap:anywhere; min-width:0}
 .empty{border:1.5px dashed var(--line); border-radius:14px; padding:28px 20px; text-align:center; color:var(--muted); display:flex; flex-direction:column; gap:12px; align-items:center}
 .loading{color:var(--muted); padding:30px 0}
 
@@ -92,7 +92,7 @@ input:focus-visible,select:focus-visible{outline:2px solid var(--accent); outlin
 .mgrid{display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:12px; align-items:end}
 .f-name{grid-column:1/-1}
 .calc{display:flex; flex-direction:column; gap:2px; font-size:12px; color:var(--muted); min-width:0}
-.calc strong{font-size:16px; color:var(--fg); font-variant-numeric:tabular-nums}
+.calc strong{font-size:16px; color:var(--fg); font-variant-numeric:tabular-nums; overflow-wrap:anywhere}
 .chip{display:inline-block; font-size:12px; font-weight:600; background:var(--warn-soft); color:var(--warn); border-radius:20px; padding:2px 10px; margin-left:8px}
 .mfoot{display:flex; justify-content:flex-end}
 
