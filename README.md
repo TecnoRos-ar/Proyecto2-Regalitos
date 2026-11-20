@@ -6,11 +6,24 @@ ni dependencias.
 
 ## Cómo se usa
 1. Abrir `Regalitos Argentinos.html` en un navegador actual (Chrome o Firefox).
-2. En **Materia prima**, cargar cada material: en qué se mide, el stock, cuánto se pagó y
-   por qué cantidad.
-3. En **Pulseras**, crear un modelo y armar su receta. La página calcula el costo, el
-   precio de venta y cuántas pulseras alcanza a armar el stock.
-4. Al armar pulseras, indicar cuántas y pulsar **Descontar del stock**.
+2. En **Materia prima**, pulsar **+ Nuevo material** por cada material y completar su
+   nombre, en qué se mide, el stock actual, cuánto se pagó ("Pagué ($)") y por qué
+   cantidad ("por"). La página muestra el costo por unidad y el valor del stock.
+3. En **Pulseras**, pulsar **+ Nueva pulsera** y ponerle nombre.
+4. Armar la receta: **+ Agregar material** por cada material, y elegir el material y la
+   cantidad que lleva una pulsera.
+5. Cargar **Mano de obra ($)** y **Packaging y otros ($)**. Sin esos dos valores, el
+   costo solo incluye los materiales.
+6. En **Ganancia**, elegir "% sobre el costo" o "$ fija por pulsera" y poner el valor.
+   Una pulsera nueva empieza con la "Ganancia sugerida para pulseras nuevas (%)", que
+   es 100 si no se cambia.
+7. Si hace falta, cambiar **Redondear el precio hacia arriba a**. Empieza en múltiplos
+   de $100 y vale para todas las pulseras.
+8. La página calcula el costo, el precio de venta y cuántas pulseras alcanza a armar el
+   stock.
+9. Al armar pulseras, indicar cuántas en "Armé (pulseras)" y pulsar **Descontar del
+   stock**. El descuento baja la materia prima y no se puede deshacer: para corregirlo
+   hay que cambiar el stock a mano.
 
 ## Cómo se escriben los números
 - Los decimales se pueden escribir con coma o con punto: `0,5` y `0.5` valen lo mismo.
