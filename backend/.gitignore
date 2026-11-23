@@ -1,0 +1,6 @@
+build/
+.env
+*.o
+*.out
+compile_commands.json
+.vscode/

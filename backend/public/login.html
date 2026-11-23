@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Regalitos Argentinos — Entrar</title>
+<style>
+:root{color-scheme:light dark;--bg:#F4F6FB;--fg:#182036;--muted:#5B6480;--line:#D8DEEC;--accent:#2B78C9;--surface:#fff;--err:#B13B2A}
+@media (prefers-color-scheme:dark){:root{--bg:#10152B;--fg:#EEF0F8;--muted:#9BA4C6;--line:#2F3966;--accent:#6DB0F0;--surface:#1A2142;--err:#FF9080}}
+*{box-sizing:border-box}
+body{margin:0;min-height:100dvh;display:grid;place-items:center;background:var(--bg);color:var(--fg);
+  font:15px/1.5 system-ui,-apple-system,sans-serif;padding:20px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:16px;
+  padding:30px;width:100%;max-width:420px;box-shadow:0 12px 32px -16px rgba(24,32,54,.2)}
+h1{margin:0 0 6px;font-size:22px;letter-spacing:-.01em}
+p.sub{color:var(--muted);margin:0 0 22px;font-size:14px}
+label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px;margin-top:16px}
+input{width:100%;padding:11px 13px;border-radius:10px;border:1px solid var(--line);
+  background:var(--surface);color:var(--fg);font:inherit;font-size:16px}
+input:focus{outline:2px solid var(--accent);outline-offset:1px}
+button{width:100%;margin-top:22px;padding:12px;border:0;border-radius:10px;
+  background:var(--accent);color:#fff;font:inherit;font-weight:600;cursor:pointer;font-size:15px}
+button:disabled{opacity:.6;cursor:not-allowed}
+.err{color:var(--err);font-size:13px;margin-top:14px;min-height:1.2em}
+.hidden{display:none}
+ol.steps{font-size:14px;color:var(--fg);padding-left:20px;margin:0 0 14px}
+ol.steps li{margin-bottom:6px}
+.secret-box{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:14px;margin-top:8px}
+.secret-label{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+#secret{display:block;font-family:monospace;font-size:20px;letter-spacing:3px;
+  word-break:break-all;margin:8px 0;user-select:all;background:transparent;color:var(--fg);padding:0}
+#copy{width:auto;margin-top:4px;padding:8px 14px;font-size:13px;background:var(--surface);
+  color:var(--fg);border:1px solid var(--line)}
+#copy:hover{border-color:var(--accent)}
+#qr_container{display:flex;justify-content:center;margin:6px 0 14px}
+#qr_container svg{width:220px;height:220px;background:#fff;padding:8px;border-radius:10px}
+</style>
+</head>
+<body>
+<form class="card" id="f">
+  <h1>Regalitos Argentinos</h1>
+  <p class="sub" id="subtitle">Ingresá con tu email y contraseña.</p>
+
+  <div id="step1">
+    <label for="email">Email</label>
+    <input type="email" id="email" autocomplete="username" required>
+    <label for="password">Contraseña</label>
+    <input type="password" id="password" autocomplete="current-password" required>
+    <button type="submit" id="b1">Entrar</button>
+  </div>
+
+  <div id="step2" class="hidden">
+    <div id="setup_block" class="hidden">
+      <div id="qr_container"></div>
+      <p style="font-size:14px;margin:0 0 10px"><strong>Cómo configurar 2FA:</strong></p>
+      <ol class="steps">
+        <li>Escaneá el QR con <strong>Google Authenticator</strong> o Authy.</li>
+        <li>Si no podés escanear, cargá la clave de abajo a mano
+            (botón <strong>+</strong> → <em>Ingresar clave de configuración</em>).</li>
+        <li>Ingresá el código de 6 dígitos que muestra la app.</li>
+      </ol>
+      <div class="secret-box">
+        <span class="secret-label">Clave manual</span>
+        <code id="secret"></code>
+        <button type="button" id="copy">Copiar clave</button>
+      </div>
+    </div>
+    <label for="code" id="code_label">Código de 6 dígitos</label>
+    <input type="text" id="code" inputmode="numeric" maxlength="6" pattern="[0-9]{6}" autocomplete="one-time-code">
+    <button type="submit" id="b2">Confirmar</button>
+  </div>
+
+  <div class="err" id="err"></div>
+</form>
+
+<script>
+const $ = id => document.getElementById(id);
+let state = null;
+
+$('f').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  $('err').textContent = '';
+  $('b1').disabled = $('b2').disabled = true;
+  try {
+    if (!state) {
+      const r = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ email: $('email').value.trim(), password: $('password').value }),
+        credentials: 'same-origin'
+      });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error || 'No pudimos entrar');
+      state = j;
+      $('step1').classList.add('hidden');
+      $('step2').classList.remove('hidden');
+      if (j.needs === 'setup') {
+        const s = await fetch('/api/auth/totp/setup', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ tmp: j.tmp }),
+          credentials: 'same-origin'
+        }).then(r => r.json());
+        if (!s.secret) throw new Error('No pudimos generar la clave 2FA');
+        $('secret').textContent = s.secret;
+        if (s.qr_svg) $('qr_container').innerHTML = s.qr_svg;
+        $('setup_block').classList.remove('hidden');
+        $('subtitle').textContent = 'Configurá 2FA y confirmá el código.';
+        $('code').focus();
+      } else {
+        $('subtitle').textContent = 'Ingresá el código de tu Authenticator.';
+        $('code').focus();
+      }
+    } else {
+      const endpoint = state.needs === 'setup' ? '/api/auth/totp/enable' : '/api/auth/totp/verify';
+      const r = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ tmp: state.tmp, code: $('code').value.trim() }),
+        credentials: 'same-origin'
+      });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error || 'Código inválido');
+      location.href = '/';
+      return;
+    }
+  } catch (err) {
+    $('err').textContent = err.message;
+  } finally {
+    $('b1').disabled = $('b2').disabled = false;
+  }
+});
+
+$('copy').addEventListener('click', async () => {
+  const text = $('secret').textContent;
+  try {
+    await navigator.clipboard.writeText(text);
+    $('copy').textContent = '¡Copiado!';
+    setTimeout(() => $('copy').textContent = 'Copiar clave', 1500);
+  } catch {
+    const range = document.createRange();
+    range.selectNodeContents($('secret'));
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+    $('copy').textContent = 'Seleccioná y copiá con Ctrl+C';
+  }
+});
+</script>
+</body>
+</html>

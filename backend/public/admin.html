@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Regalitos — Usuarios</title>
+<style>
+:root{color-scheme:light dark;--bg:#F4F6FB;--fg:#182036;--muted:#5B6480;--line:#D8DEEC;--accent:#2B78C9;--surface:#fff;--err:#B13B2A;--ok:#1F7A55}
+@media (prefers-color-scheme:dark){:root{--bg:#10152B;--fg:#EEF0F8;--muted:#9BA4C6;--line:#2F3966;--accent:#6DB0F0;--surface:#1A2142;--err:#FF9080;--ok:#6FD1A3}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 system-ui,sans-serif;padding:24px}
+.wrap{max-width:1000px;margin:0 auto;display:flex;flex-direction:column;gap:22px}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+h1{margin:0;font-size:22px}
+h2{margin:0 0 16px;font-size:16px}
+.who{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--muted)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:22px}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{text-align:left;padding:11px 10px;border-bottom:1px solid var(--line);vertical-align:middle}
+th{font-weight:600;color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.05em}
+tr:last-child td{border-bottom:0}
+button{font:inherit;padding:6px 12px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--fg);cursor:pointer;font-size:13px;white-space:nowrap}
+button:hover{border-color:var(--accent)}
+button.primary{background:var(--accent);color:#fff;border-color:var(--accent);padding:10px 18px;font-weight:600}
+button.danger{color:var(--err)}
+.btn-row{display:flex;gap:6px;flex-wrap:wrap}
+input,select{padding:10px 12px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--fg);font:inherit;font-size:14px;width:100%}
+input:focus,select:focus{outline:2px solid var(--accent);outline-offset:1px}
+.row{display:grid;grid-template-columns:1.3fr 1fr 1.3fr .9fr auto;gap:12px;align-items:end}
+@media (max-width:800px){.row{grid-template-columns:1fr 1fr} .row button{grid-column:1/-1}}
+label{display:flex;flex-direction:column;gap:5px;font-size:12px;color:var(--muted)}
+.msg{margin-top:14px;font-size:13px;min-height:1em}
+.msg.err{color:var(--err)} .msg.ok{color:var(--ok)}
+.badge{display:inline-block;padding:3px 9px;border-radius:20px;font-size:12px;font-weight:600}
+.badge.admin{background:#E2EEFA;color:#2B78C9}
+.badge.employee{background:#EDF1F9;color:#5B6480}
+.badge.off{background:#FBE6E2;color:#B13B2A}
+.empty{text-align:center;color:var(--muted);padding:24px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Usuarios</h1>
+    <div class="who">
+      <a href="/" style="color:var(--accent);text-decoration:none">← Volver a la app</a>
+      <span id="who"></span>
+    </div>
+  </header>
+
+  <div class="card">
+    <h2>Crear usuario</h2>
+    <form id="create" class="row">
+      <label>Email<input type="email" name="email" required></label>
+      <label>Nombre<input type="text" name="name"></label>
+      <label>Contraseña (mín. 8)<input type="password" name="password" required minlength="8"></label>
+      <label>Rol<select name="role">
+        <option value="employee">Empleado</option>
+        <option value="admin">Admin</option>
+      </select></label>
+      <button type="submit" class="primary">Crear</button>
+    </form>
+    <div class="msg" id="create-msg"></div>
+  </div>
+
+  <div class="card">
+    <h2>Lista</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Email</th><th>Nombre</th><th>Rol</th><th>2FA</th>
+          <th>Último acceso</th><th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody id="users"><tr><td colspan="6" class="empty">Cargando…</td></tr></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g,
+  c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+async function api(path, opts = {}) {
+  const r = await fetch(path, { credentials: 'same-origin', ...opts });
+  if (r.status === 401) { location.href = '/login'; return null; }
+  if (r.status === 204) return null;
+  const j = await r.json().catch(() => null);
+  if (!r.ok) throw new Error((j && j.error) || ('HTTP ' + r.status));
+  return j;
+}
+
+async function boot() {
+  const me = await api('/api/auth/me');
+  if (!me) return;
+  if (me.role !== 'admin') { location.href = '/'; return; }
+  $('#who').textContent = me.email;
+  await load();
+}
+
+async function load() {
+  const users = await api('/api/admin/users');
+  if (!users || users.length === 0) {
+    $('#users').innerHTML = '<tr><td colspan="6" class="empty">Sin usuarios</td></tr>';
+    return;
+  }
+  $('#users').innerHTML = users.map(u => `
+    <tr data-id="${esc(u.id)}">
+      <td>${esc(u.email)}</td>
+      <td>${esc(u.name) || '<span style="color:var(--muted)">—</span>'}</td>
+      <td>
+        <span class="badge ${u.role}">${esc(u.role)}</span>
+        ${u.active ? '' : '<span class="badge off">desactivado</span>'}
+      </td>
+      <td>${u.totp_enabled ? '✓' : '—'}</td>
+      <td>${esc(u.last_login_at || '—')}</td>
+      <td>
+        <div class="btn-row">
+          <button data-action="toggle" data-active="${u.active}">
+            ${u.active ? 'Desactivar' : 'Activar'}
+          </button>
+          <button data-action="reset2fa">Reset 2FA</button>
+          <button data-action="role" data-role="${u.role}">
+            ${u.role === 'admin' ? '→ empleado' : '→ admin'}
+          </button>
+        </div>
+      </td>
+    </tr>
+  `).join('');
+}
+
+$('#users').addEventListener('click', async (e) => {
+  const btn = e.target.closest('button[data-action]');
+  if (!btn) return;
+  const id = btn.closest('tr').dataset.id;
+  try {
+    if (btn.dataset.action === 'toggle') {
+      await api('/api/admin/users/' + id, {
+        method: 'PUT',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ active: btn.dataset.active !== 'true' })
+      });
+    } else if (btn.dataset.action === 'reset2fa') {
+      if (!confirm('¿Resetear 2FA? El usuario tendrá que configurarlo de nuevo.')) return;
+      await api('/api/admin/users/' + id, {
+        method: 'PUT',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ reset_2fa: true })
+      });
+    } else if (btn.dataset.action === 'role') {
+      const newRole = btn.dataset.role === 'admin' ? 'employee' : 'admin';
+      if (!confirm('Cambiar rol a ' + newRole + '?')) return;
+      await api('/api/admin/users/' + id, {
+        method: 'PUT',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ role: newRole })
+      });
+    }
+    await load();
+  } catch (err) { alert(err.message); }
+});
+
+$('#create').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const f = e.target;
+  const msg = $('#create-msg');
+  msg.className = 'msg'; msg.textContent = '';
+  try {
+    await api('/api/admin/users', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        email: f.email.value.trim(),
+        name: f.name.value.trim(),
+        password: f.password.value,
+        role: f.role.value
+      })
+    });
+    msg.classList.add('ok');
+    msg.textContent = '✓ Usuario creado.';
+    f.reset();
+    await load();
+  } catch (err) {
+    msg.classList.add('err');
+    msg.textContent = err.message;
+  }
+});
+
+boot();
+</script>
+</body>
+</html>

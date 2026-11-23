@@ -1,0 +1,627 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<div id="auth-gate" style="position:fixed;inset:0;background:#F4F6FB;display:grid;place-items:center;z-index:9999;color:#5B6480;font:15px system-ui">Verificando sesión…</div>
+<title>Regalitos Argentinos</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Inter:wght@400;500;600&display=swap">
+<style>
+/* Concepto: libreta de taller de pulseras. Fondo frio, tarjetas blancas, un celeste de acento
+   y un amarillo sol reservado para la ganancia. Numeros tabulares en todo lo que es plata. */
+:root{
+  --bg:#F4F6FB; --surface:#FFFFFF; --panel:#EDF1F9; --fg:#182036; --muted:#5B6480; --line:#D8DEEC;
+  --accent:#2B78C9; --accent-ink:#FFFFFF; --accent-soft:#E2EEFA;
+  --gain-bg:#FFE7A0; --gain-fg:#4A3500;
+  --warn:#B13B2A; --warn-soft:#FBE6E2; --ok:#1F7A55; --ok-soft:#DDF3E9;
+  --b1:#2B78C9; --b2:#F2B632; --b3:#E4604F; --b4:#3DAA83;
+  --f-display:'Bricolage Grotesque',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --f-body:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#10152B; --surface:#1A2142; --panel:#222B56; --fg:#EEF0F8; --muted:#9BA4C6; --line:#2F3966;
+    --accent:#6DB0F0; --accent-ink:#0D1530; --accent-soft:#1F3358;
+    --gain-bg:#4D3C0B; --gain-fg:#FFD970;
+    --warn:#FF9080; --warn-soft:#4A2420; --ok:#6FD1A3; --ok-soft:#1B3D31;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#10152B; --surface:#1A2142; --panel:#222B56; --fg:#EEF0F8; --muted:#9BA4C6; --line:#2F3966;
+  --accent:#6DB0F0; --accent-ink:#0D1530; --accent-soft:#1F3358;
+  --gain-bg:#4D3C0B; --gain-fg:#FFD970;
+  --warn:#FF9080; --warn-soft:#4A2420; --ok:#6FD1A3; --ok-soft:#1B3D31;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{
+  background:var(--bg); color:var(--fg); font:15px/1.5 var(--f-body);
+  padding-block:20px 48px;
+  padding-left:max(16px, env(safe-area-inset-left, 0px));
+  padding-right:max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap{max-width:980px; margin:0 auto; display:flex; flex-direction:column; gap:20px}
+h1,h2,h3{font-family:var(--f-display); margin:0; text-wrap:balance; line-height:1.15}
+h2{font-size:24px}
+h3{font-size:15px; letter-spacing:.02em}
+p{margin:0}
+.muted{color:var(--muted)}
+.num{font-variant-numeric:tabular-nums}
+
+header.top{display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px 20px}
+.brand{display:flex; align-items:center; gap:12px; min-width:0}
+.beads{display:flex; gap:4px}
+.beads span{width:11px; height:11px; border-radius:50%}
+.beads span:nth-child(1){background:var(--b1)} .beads span:nth-child(2){background:var(--b2)}
+.beads span:nth-child(3){background:var(--b3)} .beads span:nth-child(4){background:var(--b4)}
+.brand h1{font-size:22px}
+.brand small{display:block; color:var(--muted); font-size:12px; letter-spacing:.06em; text-transform:uppercase}
+.right{display:flex; align-items:center; gap:14px; flex-wrap:wrap}
+nav.tabs{display:flex; gap:4px; background:var(--panel); padding:4px; border-radius:12px}
+nav.tabs a{color:var(--muted); text-decoration:none; padding:8px 14px; border-radius:9px; font-weight:500; white-space:nowrap}
+nav.tabs a[aria-current="page"]{background:var(--surface); color:var(--fg); box-shadow:0 1px 2px rgba(0,0,0,.12)}
+nav.tabs a:focus-visible, .btn:focus-visible, .icon:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+#status{font-size:12px; color:var(--muted)}
+#status.ok::before,#status.err::before,#status.busy::before{content:""; display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:6px; background:var(--muted)}
+#status.ok::before{background:var(--ok)} #status.err{color:var(--warn)} #status.err::before{background:var(--warn)} #status.busy::before{background:var(--b2)}
+
+.bar{display:flex; flex-wrap:wrap; align-items:flex-end; justify-content:space-between; gap:12px}
+.bar .sub{color:var(--muted); margin-top:4px; max-width:60ch}
+.btn{font:inherit; font-weight:600; border:1px solid var(--line); background:var(--surface); color:var(--fg); padding:9px 14px; border-radius:10px; cursor:pointer}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent); color:var(--accent-ink); border-color:var(--accent)}
+.btn.danger{color:var(--warn)}
+.btn[disabled]{opacity:.5; cursor:not-allowed}
+.icon{font:inherit; width:34px; height:34px; border-radius:8px; border:1px solid var(--line); background:transparent; color:var(--muted); cursor:pointer; flex:none}
+.icon:hover{color:var(--warn); border-color:var(--warn)}
+.linkbtn{font:inherit; font-size:13px; background:none; border:0; color:var(--muted); cursor:pointer; padding:4px 0; text-decoration:underline; text-underline-offset:3px}
+.linkbtn:hover{color:var(--warn)}
+.linkbtn.armed{color:var(--warn); font-weight:600}
+
+.card{background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:18px; display:flex; flex-direction:column; gap:16px; min-width:0}
+.note{display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:10px 16px; background:var(--gain-bg); color:var(--gain-fg); border-radius:12px; padding:12px 16px}
+.note .btn{background:transparent; color:inherit; border-color:currentColor}
+.note div{display:flex; gap:8px; flex-wrap:wrap}
+.stat{display:flex; flex-wrap:wrap; align-items:baseline; gap:6px 14px; background:var(--panel); border-radius:12px; padding:12px 16px}
+.stat strong{font:700 22px var(--f-display)}
+.empty{border:1.5px dashed var(--line); border-radius:14px; padding:28px 20px; text-align:center; color:var(--muted); display:flex; flex-direction:column; gap:12px; align-items:center}
+.loading{color:var(--muted); padding:30px 0}
+
+label.f{display:flex; flex-direction:column; gap:4px; font-size:12px; color:var(--muted); font-weight:500; min-width:0}
+input,select{font:inherit; color:var(--fg); background:var(--surface); border:1px solid var(--line); border-radius:8px; padding:8px 10px; width:100%; min-width:0}
+input[type=number]{font-variant-numeric:tabular-nums}
+input:focus-visible,select:focus-visible{outline:2px solid var(--accent); outline-offset:1px; border-color:var(--accent)}
+.mgrid{display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:12px; align-items:end}
+.f-name{grid-column:1/-1}
+.calc{display:flex; flex-direction:column; gap:2px; font-size:12px; color:var(--muted); min-width:0}
+.calc strong{font-size:16px; color:var(--fg); font-variant-numeric:tabular-nums}
+.chip{display:inline-block; font-size:12px; font-weight:600; background:var(--warn-soft); color:var(--warn); border-radius:20px; padding:2px 10px; margin-left:8px}
+.mfoot{display:flex; justify-content:flex-end}
+
+.phead{display:flex; gap:10px; align-items:center}
+.phead input{font:700 20px var(--f-display); border-color:transparent; background:transparent; padding:4px 6px}
+.phead input:hover{border-color:var(--line)}
+.cols{display:grid; grid-template-columns:minmax(0,1.3fr) minmax(0,1fr); gap:22px}
+@media (max-width:760px){.cols{grid-template-columns:minmax(0,1fr)}}
+.recipe{display:flex; flex-direction:column; gap:10px}
+.ing{display:flex; flex-wrap:wrap; align-items:center; gap:8px}
+.ing select{flex:1 1 190px}
+.qty{display:flex; align-items:center; gap:6px; width:112px}
+.qty .u{color:var(--muted); font-size:13px; width:20px}
+.isub{margin-left:auto; min-width:72px; text-align:right; font-variant-numeric:tabular-nums; color:var(--muted)}
+.extras{display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:12px; margin-top:6px}
+.result{background:var(--panel); border-radius:12px; padding:16px; display:flex; flex-direction:column; gap:14px; min-width:0}
+dl.lines{margin:0; display:grid; grid-template-columns:1fr auto; gap:6px 12px; font-size:14px}
+dl.lines dt{color:var(--muted)} dl.lines dd{margin:0; text-align:right; font-variant-numeric:tabular-nums}
+dl.lines .tot{font-weight:600; color:var(--fg)}
+.gainrow{display:grid; grid-template-columns:1fr 1fr; gap:8px}
+.price small{display:block; color:var(--muted); font-size:12px}
+.price strong{display:block; font:700 36px/1.1 var(--f-display); font-variant-numeric:tabular-nums}
+.gainchip{display:inline-block; background:var(--gain-bg); color:var(--gain-fg); font-weight:600; font-size:13px; padding:4px 12px; border-radius:20px; margin-top:6px}
+.cap{font-size:13px; color:var(--muted)}
+.prod{display:flex; gap:8px; align-items:flex-end}
+.prod label{flex:1}
+.msg{font-size:13px; border-radius:8px; padding:8px 12px}
+.msg.ok{background:var(--ok-soft); color:var(--ok)} .msg.warn{background:var(--warn-soft); color:var(--warn)}
+.cfg{display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:12px; background:var(--panel); border-radius:12px; padding:14px 16px}
+input[type=number]{-moz-appearance:textfield; appearance:textfield}
+input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none; margin:0}
+
+/* Ritmo y acabado: más aire entre bloques, sombra suave, jerarquía de títulos */
+:root{--shadow:0 1px 2px rgba(24,32,54,.05), 0 12px 28px -16px rgba(24,32,54,.18)}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--shadow:none}}
+:root[data-theme="dark"]{--shadow:none}
+body{padding-block:36px 72px; line-height:1.55}
+.wrap{max-width:960px; gap:36px}
+#app{display:flex; flex-direction:column; gap:28px}
+header.top{padding-bottom:22px; border-bottom:1px solid var(--line)}
+h2{font-size:28px; letter-spacing:-.01em}
+.bar{gap:16px 24px}
+.bar .sub{font-size:15px; margin-top:8px}
+.card{padding:26px; gap:26px; border-radius:18px; box-shadow:var(--shadow)}
+.note{padding:16px 20px; border-radius:14px}
+.stat{padding:16px 22px; border-radius:14px; gap:6px 16px}
+.cfg{padding:20px 22px; gap:18px 20px; border-radius:14px}
+.empty{padding:44px 24px; gap:16px; border-radius:18px}
+label.f{gap:6px; font-size:13px}
+input,select{padding:11px 13px; border-radius:10px}
+.btn{padding:11px 18px; border-radius:12px}
+.mgrid{gap:20px 18px}
+.mfoot{border-top:1px solid var(--line); padding-top:16px}
+.phead input{font-size:24px; padding:6px 8px; margin-left:-8px}
+.cols{gap:36px}
+.recipe{gap:16px}
+.recipe h3{font:600 12px var(--f-body); letter-spacing:.09em; text-transform:uppercase; color:var(--muted)}
+.ing{gap:10px}
+.extras{gap:18px; margin-top:12px; padding-top:22px; border-top:1px solid var(--line)}
+.result{padding:24px; gap:22px; border-radius:16px}
+dl.lines{gap:10px 16px}
+.gainrow{gap:12px}
+.price strong{font-size:40px}
+.gainchip{margin-top:10px; padding:5px 14px}
+.prod{gap:12px; padding-top:4px}
+nav.tabs a{padding:9px 18px}
+
+/* Celular: navegación abajo al alcance del pulgar, controles de 44px, precio primero */
+@media (max-width:640px){
+  body{padding-block:24px calc(96px + env(safe-area-inset-bottom, 0px))}
+  .wrap{gap:28px}
+  #app{gap:22px}
+  h2{font-size:26px}
+  .brand h1{font-size:20px}
+  header.top{gap:6px}
+  .right{width:100%}
+  input,select{font-size:16px; min-height:44px}
+  .btn{min-height:44px}
+  .icon{width:44px; height:44px}
+  .linkbtn{padding:12px 0}
+  .card{padding:20px; gap:24px}
+  .result{padding:20px}
+  .cols{gap:28px}
+  .mgrid{gap:18px 14px}
+  .bar{flex-direction:column; align-items:stretch}
+  .bar .btn.primary{width:100%}
+  nav.tabs{position:fixed; left:0; right:0; bottom:0; z-index:20; border-radius:0; gap:8px; background:var(--surface); border-top:1px solid var(--line);
+    padding:8px max(16px, env(safe-area-inset-right, 0px)) calc(8px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px))}
+  nav.tabs a{flex:1; text-align:center; padding:13px 8px; font-size:15px}
+  nav.tabs a[aria-current="page"]{background:var(--accent-soft); color:var(--accent); box-shadow:none}
+  .result{order:-1}
+  .ing{display:grid; grid-template-columns:minmax(0,1fr) auto 44px; gap:8px; align-items:center}
+  .ing select{grid-column:1/-1}
+  .qty{width:100%}
+  .isub{margin-left:0; min-width:0}
+  .price strong{font-size:40px}
+  .prod .btn{white-space:nowrap}
+}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <div class="beads" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+      <div><h1>Regalitos Argentinos</h1><small>Costos y stock de pulseras</small></div>
+    </div>
+    <div class="right">
+      <span id="status" class="busy">Cargando…</span>
+      <nav class="tabs" aria-label="Secciones">
+        <a href="#pulseras" id="t-pulseras">Pulseras</a>
+        <a href="#materia-prima" id="t-materia-prima">Materia prima</a>
+      </nav>
+    </div>
+  </header>
+  <main id="app"></main>
+</div>
+
+<script>
+(function(){
+  var app = document.getElementById('app');
+  var statusEl = document.getElementById('status');
+  var LS = 'regalitos-argentinos-v1';
+  var UN = {m:{abbr:'m', long:'metros'}, un:{abbr:'un', long:'unidades'}, g:{abbr:'g', long:'gramos'}};
+
+  var S = blank();
+  var loaded = false, tab = 'pulseras', outs = {}, pendingFocus = null;
+
+  function blank(){ return {materiales:[], productos:[], config:{redondeo:100, margenDefault:100}, ejemplo:false}; }
+  function normalize(raw){
+    var s = blank();
+    if(raw){
+      if(Array.isArray(raw.materiales)) s.materiales = raw.materiales;
+      if(Array.isArray(raw.productos)) s.productos = raw.productos;
+      if(raw.config){ s.config.redondeo = +raw.config.redondeo || 0; s.config.margenDefault = isFinite(+raw.config.margenDefault) ? +raw.config.margenDefault : 100; }
+      s.ejemplo = !!raw.ejemplo;
+    }
+    s.productos.forEach(function(p){ if(!Array.isArray(p.receta)) p.receta = []; });
+    return s;
+  }
+  function uid(){ return Math.random().toString(36).slice(2, 8); }
+  function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+  function byId(list, id){ for(var i = 0; i < list.length; i++){ if(list[i].id === id) return list[i]; } return null; }
+
+  var nf0 = new Intl.NumberFormat('es-AR', {style:'currency', currency:'ARS', maximumFractionDigits:0});
+  var nf2 = new Intl.NumberFormat('es-AR', {style:'currency', currency:'ARS', minimumFractionDigits:2, maximumFractionDigits:2});
+  var nq = new Intl.NumberFormat('es-AR', {maximumFractionDigits:2});
+  function money(n){ n = +n || 0; return Math.abs(n) >= 1000 ? nf0.format(n) : nf2.format(n); }
+  function qty(n){ return nq.format(+n || 0); }
+
+  /* ---------- cálculos ---------- */
+  function unitCost(m){ return (+m.cantCompra > 0) ? (+m.precioCompra || 0) / +m.cantCompra : 0; }
+  function calc(p){
+    var mat = 0, cap = Infinity, lim = '';
+    p.receta.forEach(function(r){
+      var m = byId(S.materiales, r.matId); if(!m) return;
+      mat += (+r.cant || 0) * unitCost(m);
+      if(+r.cant > 0){
+        var c = Math.floor((+m.stock || 0) / +r.cant + 1e-9);
+        if(c < cap){ cap = c; lim = m.nombre || 'material sin nombre'; }
+      }
+    });
+    var extra = (+p.manoObra || 0) + (+p.otros || 0);
+    var cost = mat + extra;
+    var g = +p.ganValor || 0;
+    var price = p.ganTipo === 'fija' ? cost + g : cost * (1 + g / 100);
+    var r = +S.config.redondeo || 0;
+    if(r > 0) price = Math.ceil(price / r - 1e-9) * r;
+    var gain = price - cost;
+    return {mat:mat, extra:extra, cost:cost, price:price, gain:gain, pct: price > 0 ? gain / price * 100 : 0, cap: isFinite(cap) ? cap : null, lim:lim};
+  }
+
+  /* ---------- guardado ---------- */
+  var dbDoc = null, saving = false, dirty = false, saveTimer = null, lastCanon = '';
+  function setStatus(text, cls){ statusEl.textContent = text; statusEl.className = cls || ''; }
+  function persisted(){ return {materiales:S.materiales, productos:S.productos, config:S.config, ejemplo:S.ejemplo}; }
+  function canon(v){
+    return JSON.stringify(v, function(k, x){
+      if(x && typeof x === 'object' && !Array.isArray(x)){ var o = {}; Object.keys(x).sort().forEach(function(key){ o[key] = x[key]; }); return o; }
+      return x;
+    });
+  }
+  function save(){ dirty = true; setStatus('Guardando…', 'busy'); clearTimeout(saveTimer); saveTimer = setTimeout(flush, 500); }
+  async function flush(){
+    if(saving) return;
+    saving = true;
+    try{
+      while(dirty){
+        dirty = false;
+        var data = JSON.parse(JSON.stringify(persisted()));
+        lastCanon = canon(data);
+        if(dbDoc){ await dbDoc.set(data); }
+        else { try{ localStorage.setItem(LS, JSON.stringify(data)); }catch(e){} }
+      }
+      setStatus(dbDoc ? 'Guardado' : 'Guardado en este navegador', 'ok');
+    }catch(e){
+      dirty = false;
+      setStatus('No se pudo guardar. Probá de nuevo.', 'err');
+    }
+    saving = false;
+  }
+
+  function loadLocal(){
+    var raw = null;
+    try{ raw = JSON.parse(localStorage.getItem(LS) || 'null'); }catch(e){}
+    S = normalize(raw); loaded = true;
+    setStatus('Se guarda solo en este navegador', 'ok');
+    render();
+  }
+
+  var serverDoc = {
+    set: async function(data){
+      var r = await fetch('/api/state', {method:'PUT', credentials:'same-origin',
+        headers:{'Content-Type':'application/json'}, body: JSON.stringify(data)});
+      if(r.status === 401){ location.href = '/login'; return; }
+      if(!r.ok) throw new Error('HTTP ' + r.status);
+    }
+  };
+  async function fetchServer(){
+    var r = await fetch('/api/state', {credentials:'same-origin'});
+    if(r.status === 401){ location.href = '/login'; return undefined; }
+    if(!r.ok) throw new Error('HTTP ' + r.status);
+    return (await r.json()).data;
+  }
+  async function init(){
+    render();
+    var raw;
+    try{ raw = await fetchServer(); }catch(e){ loadLocal(); setStatus('Sin conexión al servidor: guardando solo en este navegador', 'err'); return; }
+    if(raw === undefined) return;
+    dbDoc = serverDoc;
+    if(raw === null){
+      // Primera vez: migrar lo que hubiera en este navegador al servidor.
+      var local = null;
+      try{ local = JSON.parse(localStorage.getItem(LS) || 'null'); }catch(e){}
+      S = normalize(local); loaded = true; render();
+      if(local) save(); else setStatus('Guardado', 'ok');
+    } else {
+      S = normalize(raw); lastCanon = canon(raw); loaded = true;
+      setStatus('Guardado', 'ok'); render();
+    }
+    // Traer cambios hechos desde otro dispositivo al volver a la pestaña.
+    document.addEventListener('visibilitychange', async function(){
+      if(document.visibilityState !== 'visible' || dirty || saving) return;
+      try{
+        var fresh = await fetchServer();
+        if(fresh && !dirty && !saving && canon(fresh) !== lastCanon){
+          S = normalize(fresh); lastCanon = canon(fresh); render();
+        }
+      }catch(e){}
+    });
+  }
+
+  /* ---------- vistas ---------- */
+  function unitOptions(sel){
+    return [['m','Metros (hilo, cadena)'],['un','Unidades (mostacillas, cierres)'],['g','Gramos (dijes)']].map(function(o){
+      return '<option value="' + o[0] + '"' + (o[0] === sel ? ' selected' : '') + '>' + o[1] + '</option>';
+    }).join('');
+  }
+  function banner(){
+    if(!S.ejemplo) return '';
+    return '<div class="note" role="status"><p><strong>Datos de ejemplo.</strong> Cambiá los números por los tuyos o empezá de cero.</p>' +
+      '<div><button class="btn" data-a="keep-ex">Usar como base</button><button class="btn" data-a="clear-ex">Borrar ejemplos</button></div></div>';
+  }
+
+  function matCard(m){
+    var u = UN[m.unidad] || UN.un;
+    return '<article class="card"><div class="mgrid">' +
+      '<label class="f f-name">Nombre<span><input data-k="m" data-id="' + m.id + '" data-f="nombre" value="' + esc(m.nombre) + '" placeholder="Ej: Hilo encerado negro"></span></label>' +
+      '<label class="f">Se mide en<select data-k="m" data-id="' + m.id + '" data-f="unidad">' + unitOptions(m.unidad) + '</select></label>' +
+      '<label class="f">Stock actual (' + u.long + ')<input type="number" inputmode="decimal" step="any" min="0" data-k="m" data-id="' + m.id + '" data-f="stock" value="' + (+m.stock || 0) + '"></label>' +
+      '<label class="f">Pagué ($)<input type="number" inputmode="decimal" step="any" min="0" data-k="m" data-id="' + m.id + '" data-f="precioCompra" value="' + (+m.precioCompra || 0) + '"></label>' +
+      '<label class="f">por (' + u.long + ')<input type="number" inputmode="decimal" step="any" min="0" data-k="m" data-id="' + m.id + '" data-f="cantCompra" value="' + (+m.cantCompra || 0) + '"></label>' +
+      '<div class="calc"><span>Costo por ' + (m.unidad === 'm' ? 'metro' : m.unidad === 'g' ? 'gramo' : 'unidad') + '</span><strong data-out="mcost:' + m.id + '"></strong></div>' +
+      '<div class="calc"><span>Valor del stock <span class="chip" data-out="mst:' + m.id + '" hidden></span></span><strong data-out="mval:' + m.id + '"></strong></div>' +
+      '</div><div class="mfoot"><button class="linkbtn" data-a="del-m" data-id="' + m.id + '">Borrar material</button></div></article>';
+  }
+  function matsView(){
+    var h = '<div class="bar"><div><h2>Materia prima</h2><p class="sub">Cargá lo que tenés y lo que pagaste. Ejemplo: pagué $3.500 por 50 metros de hilo.</p></div>' +
+      '<button class="btn primary" data-a="add-m">+ Nuevo material</button></div>';
+    h += '<div class="stat"><span>Valor total del stock</span><strong data-out="msum"></strong><span class="muted">' + S.materiales.length + (S.materiales.length === 1 ? ' material' : ' materiales') + '</span></div>';
+    if(!S.materiales.length){
+      h += '<div class="empty"><p>Todavía no cargaste materiales. Empezá con el hilo, las mostacillas y los dijes.</p><button class="btn primary" data-a="add-m">+ Agregar el primero</button></div>';
+    } else {
+      h += S.materiales.map(matCard).join('');
+    }
+    return h;
+  }
+
+  function matOptions(sel){
+    var found = !!byId(S.materiales, sel);
+    var h = (found ? '' : '<option value="" selected>Elegí un material</option>');
+    S.materiales.forEach(function(m){
+      h += '<option value="' + m.id + '"' + (m.id === sel ? ' selected' : '') + '>' + esc(m.nombre || '(sin nombre)') + ' · ' + (UN[m.unidad] || UN.un).abbr + '</option>';
+    });
+    return h;
+  }
+  function prodCard(p){
+    var rows = p.receta.map(function(r, i){
+      var m = byId(S.materiales, r.matId);
+      var d = 'data-k="i" data-id="' + p.id + '" data-i="' + i + '"';
+      return '<div class="ing"><select aria-label="Material" ' + d + ' data-f="matId">' + matOptions(r.matId) + '</select>' +
+        '<div class="qty"><input type="number" inputmode="decimal" step="any" min="0" aria-label="Cantidad" ' + d + ' data-f="cant" value="' + (+r.cant || 0) + '"><span class="u">' + (m ? (UN[m.unidad] || UN.un).abbr : '') + '</span></div>' +
+        '<span class="isub" data-out="isub:' + p.id + ':' + i + '"></span>' +
+        '<button class="icon" aria-label="Quitar material" data-a="del-i" data-id="' + p.id + '" data-i="' + i + '">×</button></div>';
+    }).join('');
+    var dd = 'data-k="p" data-id="' + p.id + '"';
+    return '<article class="card">' +
+      '<div class="phead"><input aria-label="Nombre de la pulsera" ' + dd + ' data-f="nombre" value="' + esc(p.nombre) + '" placeholder="Nombre de la pulsera"></div>' +
+      '<div class="cols">' +
+        '<section class="recipe"><h3>Materiales de una pulsera</h3>' + rows +
+          '<div><button class="btn" data-a="add-i" data-id="' + p.id + '"' + (S.materiales.length ? '' : ' disabled') + '>+ Agregar material</button>' +
+          (S.materiales.length ? '' : ' <span class="muted">Primero cargá materia prima.</span>') + '</div>' +
+          '<div class="extras">' +
+            '<label class="f">Mano de obra ($)<input type="number" inputmode="decimal" step="any" min="0" ' + dd + ' data-f="manoObra" value="' + (+p.manoObra || 0) + '"></label>' +
+            '<label class="f">Packaging y otros ($)<input type="number" inputmode="decimal" step="any" min="0" ' + dd + ' data-f="otros" value="' + (+p.otros || 0) + '"></label>' +
+          '</div></section>' +
+        '<section class="result">' +
+          '<dl class="lines"><dt>Materiales</dt><dd data-out="pmat:' + p.id + '"></dd><dt>Mano de obra y otros</dt><dd data-out="pextra:' + p.id + '"></dd>' +
+          '<dt class="tot">Costo del producto terminado</dt><dd class="tot" data-out="pcost:' + p.id + '"></dd></dl>' +
+          '<div class="gainrow"><label class="f">Ganancia<select ' + dd + ' data-f="ganTipo"><option value="pct"' + (p.ganTipo !== 'fija' ? ' selected' : '') + '>% sobre el costo</option><option value="fija"' + (p.ganTipo === 'fija' ? ' selected' : '') + '>$ fija por pulsera</option></select></label>' +
+          '<label class="f">' + (p.ganTipo === 'fija' ? 'Monto ($)' : 'Porcentaje (%)') + '<input type="number" inputmode="decimal" step="any" min="0" ' + dd + ' data-f="ganValor" value="' + (+p.ganValor || 0) + '"></label></div>' +
+          '<div class="price"><small>Precio de venta</small><strong data-out="pprice:' + p.id + '"></strong><span class="gainchip" data-out="pgain:' + p.id + '"></span></div>' +
+          '<p class="cap" data-out="pcap:' + p.id + '"></p>' +
+          '<div class="prod"><label class="f">Armé (pulseras)<input type="number" inputmode="numeric" step="1" min="1" value="1" data-nid="' + p.id + '"></label><button class="btn" data-a="produce" data-id="' + p.id + '">Descontar del stock</button></div>' +
+          '<p class="msg" data-out="pmsg:' + p.id + '" hidden></p>' +
+        '</section></div>' +
+      '<div class="mfoot"><button class="linkbtn" data-a="del-p" data-id="' + p.id + '">Borrar pulsera</button></div></article>';
+  }
+  function prodsView(){
+    var h = '<div class="bar"><div><h2>Pulseras</h2><p class="sub">Armá la receta de cada modelo y mirá cuánto te cuesta y a cuánto conviene venderla.</p></div>' +
+      '<button class="btn primary" data-a="add-p">+ Nueva pulsera</button></div>';
+    h += '<div class="cfg"><label class="f">Ganancia sugerida para pulseras nuevas (%)<input type="number" inputmode="decimal" step="any" min="0" data-k="c" data-f="margenDefault" value="' + (+S.config.margenDefault || 0) + '"></label>' +
+      '<label class="f">Redondear el precio hacia arriba a<select data-k="c" data-f="redondeo">' +
+      [[0,'Sin redondeo'],[10,'Múltiplos de $10'],[50,'Múltiplos de $50'],[100,'Múltiplos de $100'],[500,'Múltiplos de $500']].map(function(o){
+        return '<option value="' + o[0] + '"' + (+S.config.redondeo === o[0] ? ' selected' : '') + '>' + o[1] + '</option>';
+      }).join('') + '</select></label></div>';
+    if(!S.productos.length){
+      h += '<div class="empty"><p>Todavía no armaste ninguna pulsera.</p><button class="btn primary" data-a="add-p">+ Crear la primera</button></div>';
+    } else {
+      h += S.productos.map(prodCard).join('');
+    }
+    return h;
+  }
+
+  /* ---------- render y refresco de números ---------- */
+  function updateTabs(){
+    ['pulseras', 'materia-prima'].forEach(function(t){
+      var a = document.getElementById('t-' + t);
+      if(t === tab) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
+    });
+  }
+  function render(){
+    updateTabs();
+    var h;
+    if(!loaded) h = '<p class="loading">Cargando tus datos…</p>';
+    else h = banner() + (tab === 'materia-prima' ? matsView() : prodsView());
+    app.innerHTML = h;
+    outs = {};
+    app.querySelectorAll('[data-out]').forEach(function(n){ outs[n.getAttribute('data-out')] = n; });
+    if(loaded) refresh();
+    if(pendingFocus){
+      var el = app.querySelector(pendingFocus);
+      if(el){ el.focus(); el.scrollIntoView({block:'center'}); }
+      pendingFocus = null;
+    }
+  }
+  function put(key, text){ if(outs[key]) outs[key].textContent = text; }
+  function refresh(){
+    var total = 0;
+    S.materiales.forEach(function(m){
+      var cu = unitCost(m), ab = (UN[m.unidad] || UN.un).abbr;
+      put('mcost:' + m.id, money(cu) + ' / ' + ab);
+      put('mval:' + m.id, money((+m.stock || 0) * cu));
+      total += (+m.stock || 0) * cu;
+      var chip = outs['mst:' + m.id];
+      if(chip){ chip.hidden = !((+m.stock || 0) <= 0); chip.textContent = 'Sin stock'; }
+    });
+    put('msum', money(total));
+    S.productos.forEach(function(p){
+      var c = calc(p);
+      p.receta.forEach(function(r, i){
+        var m = byId(S.materiales, r.matId);
+        put('isub:' + p.id + ':' + i, m ? money((+r.cant || 0) * unitCost(m)) : '—');
+      });
+      put('pmat:' + p.id, money(c.mat));
+      put('pextra:' + p.id, money(c.extra));
+      put('pcost:' + p.id, money(c.cost));
+      put('pprice:' + p.id, money(c.price));
+      put('pgain:' + p.id, 'Ganancia ' + money(c.gain) + ' · ' + qty(c.pct) + '% del precio');
+      put('pcap:' + p.id, c.cap === null ? 'Agregá materiales para ver cuántas podés armar con tu stock.' :
+        c.cap <= 0 ? 'Con tu stock no alcanza para armar una (te falta: ' + c.lim + ').' :
+        'Con tu stock podés armar ' + c.cap + (c.cap === 1 ? ' pulsera' : ' pulseras') + ' (el que limita: ' + c.lim + ').');
+    });
+  }
+
+  /* ---------- eventos ---------- */
+  app.addEventListener('input', function(e){
+    var t = e.target, f = t.getAttribute('data-f'), k = t.getAttribute('data-k');
+    if(!f || !k || !loaded) return;
+    var id = t.getAttribute('data-id');
+    var v = t.value;
+    if(t.type === 'number'){ v = parseFloat(t.value); if(!isFinite(v)) v = 0; }
+    if(k === 'm'){ var m = byId(S.materiales, id); if(!m) return; m[f] = v; }
+    else if(k === 'p'){ var p = byId(S.productos, id); if(!p) return; p[f] = v; }
+    else if(k === 'i'){ var q = byId(S.productos, id); if(!q) return; var r = q.receta[+t.getAttribute('data-i')]; if(!r) return; r[f] = v; }
+    else if(k === 'c'){ S.config[f] = (f === 'redondeo' || f === 'margenDefault') ? (+v || 0) : v; }
+    if(f === 'unidad' || f === 'matId' || f === 'ganTipo'){ render(); } else { refresh(); }
+    save();
+  });
+
+  app.addEventListener('focusin', function(e){
+    var t = e.target;
+    if(t.tagName === 'INPUT' && t.type === 'number'){ try{ t.select(); }catch(err){} }
+  });
+
+  var armed = null, armedTimer = null;
+  function confirmTwice(btn, key, label, action){
+    if(armed === key){ clearTimeout(armedTimer); armed = null; action(); return; }
+    armed = key;
+    var old = btn.textContent;
+    btn.textContent = '¿Seguro? Tocá otra vez';
+    btn.classList.add('armed');
+    clearTimeout(armedTimer);
+    armedTimer = setTimeout(function(){ armed = null; btn.textContent = old; btn.classList.remove('armed'); }, 3000);
+  }
+
+  app.addEventListener('click', function(e){
+    var b = e.target.closest('[data-a]'); if(!b || !loaded) return;
+    var a = b.getAttribute('data-a'), id = b.getAttribute('data-id');
+    if(a === 'add-m'){
+      var nid = uid();
+      S.materiales.push({id:nid, nombre:'', unidad:'un', stock:0, precioCompra:0, cantCompra:1});
+      pendingFocus = '[data-id="' + nid + '"][data-f="nombre"]'; save(); render();
+    } else if(a === 'del-m'){
+      confirmTwice(b, 'm' + id, 'Borrar material', function(){
+        S.materiales = S.materiales.filter(function(m){ return m.id !== id; });
+        S.productos.forEach(function(p){ p.receta = p.receta.filter(function(r){ return r.matId !== id; }); });
+        save(); render();
+      });
+    } else if(a === 'add-p'){
+      var pid = uid();
+      S.productos.push({id:pid, nombre:'', receta:[], manoObra:0, otros:0, ganTipo:'pct', ganValor:+S.config.margenDefault || 0});
+      pendingFocus = '[data-id="' + pid + '"][data-f="nombre"]'; save(); render();
+    } else if(a === 'del-p'){
+      confirmTwice(b, 'p' + id, 'Borrar pulsera', function(){
+        S.productos = S.productos.filter(function(p){ return p.id !== id; });
+        save(); render();
+      });
+    } else if(a === 'add-i'){
+      var p = byId(S.productos, id); if(!p || !S.materiales.length) return;
+      p.receta.push({matId:S.materiales[0].id, cant:1});
+      save(); render();
+    } else if(a === 'del-i'){
+      var p2 = byId(S.productos, id); if(!p2) return;
+      p2.receta.splice(+b.getAttribute('data-i'), 1);
+      save(); render();
+    } else if(a === 'produce'){
+      produce(id);
+    } else if(a === 'keep-ex'){
+      S.ejemplo = false; save(); render();
+    } else if(a === 'clear-ex'){
+      var cfg = S.config; S = blank(); S.config = cfg; save(); render();
+    }
+  });
+
+  function produce(id){
+    var p = byId(S.productos, id); if(!p) return;
+    var inp = app.querySelector('[data-nid="' + id + '"]');
+    var msg = outs['pmsg:' + id];
+    var n = Math.floor(parseFloat(inp && inp.value));
+    function show(text, cls){ msg.hidden = false; msg.className = 'msg ' + cls; msg.textContent = text; }
+    if(!(n > 0)){ show('Poné cuántas pulseras armaste.', 'warn'); return; }
+    var faltan = [];
+    p.receta.forEach(function(r){
+      var m = byId(S.materiales, r.matId); if(!m) return;
+      var need = (+r.cant || 0) * n;
+      if((+m.stock || 0) < need - 1e-9) faltan.push((m.nombre || 'Material sin nombre') + ': te faltan ' + qty(need - (+m.stock || 0)) + ' ' + (UN[m.unidad] || UN.un).abbr);
+    });
+    if(faltan.length){ show('No alcanza el stock. ' + faltan.join(' · '), 'warn'); return; }
+    p.receta.forEach(function(r){
+      var m = byId(S.materiales, r.matId); if(!m) return;
+      m.stock = Math.round(((+m.stock || 0) - (+r.cant || 0) * n) * 100) / 100;
+    });
+    save(); refresh();
+    show('Listo. Descontamos del stock los materiales de ' + n + (n === 1 ? ' pulsera.' : ' pulseras.'), 'ok');
+  }
+
+  function route(){
+    tab = location.hash === '#materia-prima' ? 'materia-prima' : 'pulseras';
+    render();
+  }
+  window.addEventListener('hashchange', route);
+  tab = location.hash === '#materia-prima' ? 'materia-prima' : 'pulseras';
+  init();
+})();
+</script>
+
+<script>
+(async () => {
+  const gate = document.getElementById('auth-gate');
+  try {
+    const r = await fetch('/api/auth/me', { credentials: 'same-origin' });
+    if (!r.ok) { location.href = '/login'; return; }
+    const me = await r.json();
+    if (me.role === 'admin') {
+      const nav = document.querySelector('nav.tabs');
+      if (nav && !nav.querySelector('a[href="/admin"]')) {
+        const a = document.createElement('a');
+        a.href = '/admin'; a.textContent = 'Usuarios';
+        nav.appendChild(a);
+      }
+    }
+    const right = document.querySelector('.right');
+    if (right) {
+      const box = document.createElement('div');
+      box.style.cssText = 'display:flex;align-items:center;gap:10px;font-size:13px;color:var(--muted)';
+      box.innerHTML = '<span>' + me.email + ' · ' + me.role + '</span>';
+      const btn = document.createElement('button');
+      btn.className = 'btn'; btn.textContent = 'Salir';
+      btn.style.cssText = 'padding:7px 14px;font-size:13px';
+      btn.onclick = async () => {
+        await fetch('/api/auth/logout', { method: 'POST', credentials: 'same-origin' });
+        location.href = '/login';
+      };
+      box.appendChild(btn);
+      right.insertBefore(box, right.firstChild);
+    }
+    gate.remove();
+  } catch (e) { location.href = '/login'; }
+})();
+</script>
+</body></html>
