@@ -1,0 +1,20 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: regalitos-db
+    environment:
+      POSTGRES_USER: regalitos
+      POSTGRES_PASSWORD: regalitos
+      POSTGRES_DB: regalitos
+    ports: ["5532:5432"]
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./migrations:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U regalitos"]
+      interval: 3s
+      timeout: 3s
+      retries: 15
+
+volumes:
+  pgdata:
