@@ -1,0 +1,7 @@
+build/
+vcpkg_installed/
+.env
+*.o
+*.out
+compile_commands.json
+.vscode/
