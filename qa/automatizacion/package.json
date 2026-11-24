@@ -1,0 +1,16 @@
+{
+  "name": "regalitos-qa",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Pruebas automáticas de Regalitos Argentinos (QA)",
+  "scripts": {
+    "test": "playwright test",
+    "test:escritorio": "playwright test --project=escritorio",
+    "test:movil": "playwright test --project=movil",
+    "informe": "node scripts/informe.mjs",
+    "reporte": "playwright show-report"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.64.1"
+  }
+}
