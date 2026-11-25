@@ -1,0 +1,29 @@
+BE-REC-00 | Preparacion: sesion del administrador y dos cuentas de prueba | 200 y 201, 201 | 200 [201, 201] | PASA
+BE-REC-01 | GET /forgot y GET /reset sin sesion | 200 y 200 | [200, 200] | PASA
+BE-REC-02 | La pagina de ingreso enlaza a la recuperacion | enlace a "/forgot" | True | PASA
+BE-REC-03 | Pedir el enlace para un correo sin cuenta | 200 con el mensaje general y ningun pedido guardado | 200 Si el email está registrado, te enviamos pedidos=0 | PASA
+BE-REC-04 | Pedir el enlace sin correo y con un cuerpo mal formado | 400 y 400 | 400 400 | PASA
+BE-REC-05 | Pedir el enlace con un numero como correo | 400 | 500 {'_texto': '500 Internal Server Error\r\n'} | FALLA
+BE-REC-06 | Pedir el enlace para una cuenta existente | 200 con la misma respuesta que para un correo sin cuenta | 200 igual=True | PASA
+BE-REC-07 | Sin proveedor de correo, el enlace sale por el registro del servidor | enlace con token de 64 caracteres | token de 64 caracteres | PASA
+BE-REC-08 | La base guarda el resumen del token, no el token | resumen SHA-256 distinto del token | coincide_con_sha256=True igual_al_token=False | PASA
+BE-REC-09 | Vigencia del enlace | 30 minutos | 30 | PASA
+BE-REC-10 | Cambiar con un token mal formado, uno inexistente y sin token | 400, 400 y 400 | 400 400 400 | PASA
+BE-REC-11 | Cambiar con una contrasena de 7 caracteres | 400 y la contrasena anterior sigue valiendo | 400 ingreso_con_la_anterior=200 | PASA
+BE-REC-12 | Cambiar con un numero como contrasena | 400 | 500 {'_texto': '500 Internal Server Error\r\n'} | FALLA
+BE-REC-13 | Cambiar la contrasena con el enlace vigente | 200 | 200 {'ok': True} | PASA
+BE-REC-14 | Ingresar con la contrasena anterior y con la nueva | 401 y 200 | 401 200 | PASA
+BE-REC-15 | Tras el cambio, el ingreso sigue pidiendo el segundo factor | pide el codigo; no entrega sesion | claves=['needs', 'tmp'] sesion=False | PASA
+BE-REC-16 | Una sesion abierta antes del cambio de contrasena | 401 | 401 | PASA
+BE-REC-17 | Usar el mismo enlace por segunda vez | 400 y la contrasena no cambia | 400 ingreso=200 | PASA
+BE-REC-18 | Un enlace nuevo anula el anterior sin usar | 400 con el enlace anterior | 400 enlaces_distintos=True | PASA
+BE-REC-19 | Cuarto pedido de la misma cuenta en una hora | 200 con el mensaje general y sin enlace nuevo (maximo 3 por hora) | 200 pedidos=3 enlace_nuevo=False | PASA
+BE-REC-20 | Quien conoce el correo de una cuenta agota sus tres pedidos de la hora | la cuenta sigue pudiendo pedir su enlace | pedidos sin sesion desde cualquier origen; al cuarto la cuenta no recibe enlace (enlace_nuevo=False) | DATO
+BE-REC-21 | El ultimo enlace vigente sigue sirviendo | 200 | 200 | PASA
+BE-REC-22 | Cambiar con un enlace vencido | 400 | 400 enlace=True | PASA
+BE-REC-23 | Cuenta desactivada: cambiar con un enlace pedido antes y pedir otro | 400; 200 con el mensaje general y sin pedido nuevo | 400; 200 igual=True pedido_nuevo=False | PASA
+BE-REC-24 | Cuenta bloqueada por intentos fallidos: recuperar la contrasena | el cambio responde 200 y la cuenta vuelve a ingresar | bloqueada=429 cambio=200 ingreso=200 | PASA
+BE-REC-25 | Cambiar a una contrasena de ocho espacios | rechazo | 200 {'ok': True} | FALLA
+BE-REC-26 | Los pedidos y los cambios quedan en el registro de actividad | password_reset_requested y password_reset_completed | password_reset_completed=4 password_reset_requested=7 | PASA
+BE-REC-27 | El servidor sigue respondiendo al final de la corrida | 200 | 200 | PASA
+TOTAL | PASA 24 | FALLA 3 | DATO 1
