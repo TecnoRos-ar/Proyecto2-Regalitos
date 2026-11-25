@@ -89,6 +89,7 @@ void register_admin_routes(crow::SimpleApp& app, ConnectionPool& pool) {
 
         auto conn = pool.acquire();
         pqxx::work tx{*conn};
+        if (!auth::find_by_id(tx, id)) return crow::response{404, R"({"error":"no existe"})"};
         if (body.contains("role")) {
             auto role = body["role"].get<std::string>();
             if (role != "admin" && role != "employee") return crow::response{400};
