@@ -1,0 +1,12 @@
+{
+  "services": {
+    "backend": {
+      "root": "backend/",
+      "runtime": "container",
+      "entrypoint": "Dockerfile"
+    }
+  },
+  "rewrites": [
+    { "source": "/(.*)", "destination": { "service": "backend" } }
+  ]
+}
