@@ -31,6 +31,7 @@ std::optional<AuthCtx> get_user(const crow::request& req, ConnectionPool& pool) 
     auto u = auth::find_by_id(tx, payload->value("sub", ""));
     tx.commit();
     if (!u || !u->active) return std::nullopt;
+    if (payload->value("sv", -1) != u->session_version) return std::nullopt;
     return AuthCtx{ u->id, u->email, u->role };
 }
 

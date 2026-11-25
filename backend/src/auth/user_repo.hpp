@@ -12,6 +12,7 @@ struct User {
     bool active = true, totp_enabled = false;
     std::optional<std::string> totp_secret;
     int failed_attempts = 0;
+    int session_version = 0;
     std::optional<std::string> locked_until;
     std::string password_changed_at;
 };

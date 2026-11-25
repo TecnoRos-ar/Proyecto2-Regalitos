@@ -19,6 +19,13 @@ Backend C++20 (Crow + libpqxx) + PostgreSQL 16.
 
 Prueba:   curl -s http://localhost:8080/health
 
+`docker compose up` aplica las migraciones solo al crear la base. En una base ya creada,
+las migraciones nuevas se aplican a mano, por ejemplo:
+
+    psql "$DATABASE_URL" -f migrations/003_session_version.sql
+
+La imagen (`Dockerfile`) las aplica sola al arrancar.
+
 ## Endpoints
 - GET    /health
 - GET    /api/materials
