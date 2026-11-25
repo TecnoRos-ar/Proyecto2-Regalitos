@@ -87,7 +87,8 @@ void register_product_routes(crow::SimpleApp& app, ConnectionPool& pool) {
                 for (auto& item : body["recipe"]) {
                     db::exec(tx,
                         "INSERT INTO recipe_items (product_id, material_id, quantity) "
-                        "VALUES ($1, $2, $3) ON CONFLICT DO NOTHING",
+                        "VALUES ($1, $2, $3) ON CONFLICT (product_id, material_id) "
+                        "DO UPDATE SET quantity = recipe_items.quantity + EXCLUDED.quantity",
                         pid,
                         item.value("material_id", std::string{}),
                         item.value("quantity", 0.0));
