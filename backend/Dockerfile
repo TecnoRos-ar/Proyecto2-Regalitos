@@ -1,5 +1,5 @@
 # ---------- Etapa 1: compilar ----------
-FROM debian:bookworm AS build
+FROM debian:trixie AS build
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
         build-essential cmake ninja-build git curl ca-certificates \
@@ -28,7 +28,7 @@ RUN cmake -B build -S . -G Ninja \
     && cmake --build build --target regalitos -j"$(nproc)"
 
 # ---------- Etapa 2: imagen final, liviana ----------
-FROM debian:bookworm-slim
+FROM debian:trixie-slim
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
         ca-certificates postgresql-client curl \
