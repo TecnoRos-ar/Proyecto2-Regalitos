@@ -161,7 +161,7 @@ void register_password_routes(crow::SimpleApp& app, ConnectionPool& pool) {
                 R"({"error":"El enlace no es válido o ya venció. Pedí uno nuevo."})"};
         };
         if (!is_hex64(token)) return invalid();
-        if (pass.size() < MIN_PASSWORD_LEN)
+        if (pass.size() < MIN_PASSWORD_LEN || db::is_blank(pass))
             return crow::response{400,
                 R"({"error":"La contraseña tiene que tener al menos 8 caracteres."})"};
 
