@@ -1,0 +1,12 @@
+BE-NAV-01 | Abrir la aplicación sin sesión | lleva a /login | /login | PASA
+BE-NAV-02 | Ingresar con clave equivocada | mensaje de credenciales inválidas | credenciales inválidas | PASA
+BE-NAV-03 | Primer ingreso: alta del segundo factor | código QR y clave manual | QR=1 clave de 32 caracteres | PASA
+BE-NAV-04 | Confirmar el código | entra a la aplicación, con el correo, el rol y "Salir" | Regalitos Argentinos COSTOS Y STOCK DE PULSERAS admin@regalitos.local · admin Salir Guardado Pulseras Materia prima Usuarios | PASA
+BE-NAV-05 | El administrador ve el acceso a "Usuarios" | 1 enlace | 1 | PASA
+BE-NAV-06 | Abrir un estado guardado cuyo id de material contiene HTML | no se ejecuta código | ejecutado=false | PASA
+BE-NAV-07 | Material nuevo con stock "0,5" | el campo muestra 0,5 y el servidor guarda 0.5 | campo=0,5 servidor=0.5 nombre=Hilo encerado | PASA
+BE-NAV-08 | Indicador de guardado | "Guardado" | Guardado | PASA
+BE-NAV-09 | Recargar la página | el material sigue | Hilo encerado | PASA
+BE-NAV-10 | Salir y volver a abrir la aplicación | pide ingresar de nuevo | /login | PASA
+BE-NAV-11 | Errores de JavaScript durante la corrida | ninguno | ninguno | PASA
+TOTAL | PASA 11 | FALLA 0 | DATO 0

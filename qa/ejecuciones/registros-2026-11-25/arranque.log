@@ -1,0 +1,36 @@
+-- Configuring x64-linux
+CMake Warning at /src/vcpkg_installed/x64-linux/share/vcpkg-cmake/vcpkg_cmake_configure.cmake:359 (message):
+  The following variables are not used in CMakeLists.txt:
+
+      Python3_EXECUTABLE
+
+  Please recheck them and remove the unnecessary options from the
+  `vcpkg_cmake_configure` call.
+
+  If these options should still be passed for whatever reason, please use the
+  `MAYBE_UNUSED_VARIABLES` argument.
+Call Stack (most recent call first):
+  ports/libpqxx/portfile.cmake:11 (vcpkg_cmake_configure)
+  scripts/ports.cmake:210 (include)
+
+
+-- Building x64-linux-dbg
+CMake Error at scripts/cmake/vcpkg_execute_build_process.cmake:134 (message):
+    Command failed: /opt/vcpkg/downloads/tools/cmake-4.4.5-linux/cmake-4.4.5-linux-x86_64/bin/cmake --build . --config Debug --target install -- -v -j7
+    Working Directory: /opt/vcpkg/buildtrees/libpqxx/x64-linux-dbg
+    See logs for more information:
+      /opt/vcpkg/buildtrees/libpqxx/install-x64-linux-dbg-out.log
+
+Call Stack (most recent call first):
+  /src/vcpkg_installed/x64-linux/share/vcpkg-cmake/vcpkg_cmake_build.cmake:77 (vcpkg_execute_build_process)
+tail: cannot open '/opt/vcpkg/buildtrees/libpqxx/install-x64-linux-dbg-out.log' for reading: No such file or directory
+ Container regalitos-db  Created
+ Container regalitos-db  Starting
+ Container regalitos-db  Started
+regalitos-db Up 8 seconds (healthy) 0.0.0.0:5532->5432/tcp, [::]:5532->5432/tcp
+--- arranque con el entrypoint de la imagen
+Esperando a la base de datos...
+Aplicando migración 001_init.sql
+psql:/app/migrations/001_init.sql:3: NOTICE:  extension "pgcrypto" already exists, skipping
+psql:/app/migrations/001_init.sql:12: ERROR:  relation "users" already exists
+rc=0

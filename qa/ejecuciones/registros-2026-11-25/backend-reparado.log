@@ -1,0 +1,108 @@
+Esperando a la base de datos...
+Aplicando migración 003_session_version.sql
+psql:/app/migrations/003_session_version.sql:4: NOTICE:  column "session_version" of relation "users" already exists, skipping
+Migraciones al día. Arrancando backend...
+
+=============================================
+BE-ARR-01 | GET /health | 200 status ok | 200 {'status': 'ok'} | PASA
+BE-ARR-02 | GET / sin sesion | 200 con la pagina | 200 | PASA
+BE-ARR-03 | GET /login sin sesion | 200 con la pagina | 200 | PASA
+BE-ARR-04 | GET /admin sin sesion | 200 con la pagina | 200 | PASA
+BE-ARR-05 | GET de una ruta inexistente | 404 | 404 | PASA
+BE-AUT-01 | Rutas de datos sin sesion | 401 en las 11 | GET /api/auth/me=401 GET /api/materials=401 POST /api/materials=401 GET /api/products=401 POST /api/products=401 POST /api/production=401 GET /api/movements=401 GET /api/state=401 PUT /api/state=401 GET /api/admin/users=401 POST /api/admin/users=401 | PASA
+BE-AUT-02 | GET /api/auth/me con una cookie inventada | 401 | 401 | PASA
+BE-AUT-03 | Ingreso con clave equivocada | 401 credenciales invalidas | 401 {'error': 'credenciales inválidas'} | PASA
+BE-AUT-04 | Ingreso con un correo que no existe | 401 con el mismo texto | 401 {'error': 'credenciales inválidas'} | PASA
+BE-AUT-05 | Ingreso sin clave | 400 | 400 | PASA
+BE-AUT-06 | Ingreso con cuerpo que no es JSON | 400 | 400 | PASA
+BE-AUT-07 | Ingreso con el correo como numero | 400 | 400 {'error': 'tipo de dato inválido'} | PASA
+BE-AUT-08 | Ingreso con el correo en mayusculas | dato: lo decide el equipo (hoy distingue mayusculas) | 401 | DATO
+BE-AUT-09 | Primer ingreso del administrador | 200 needs=setup | 200 needs=setup | PASA
+BE-AUT-10 | Alta del segundo factor | 200 con secreto, otpauth_url y qr_svg | 200 campos=['otpauth_url', 'qr_svg', 'secret'] | PASA
+BE-AUT-11 | Activar el segundo factor con un codigo equivocado | 401 | 401 | PASA
+BE-AUT-12 | Activar el segundo factor con el codigo correcto | 200 con cookie de sesion y rol admin | 200 rol=admin cookie=si | PASA
+BE-AUT-13 | Atributos de la cookie de sesion | HttpOnly, SameSite y Secure | Path=/; HttpOnly; SameSite=Lax; Max-Age=28800 | FALLA
+BE-AUT-14 | GET /api/auth/me con sesion | 200 con id, correo y rol | 200 ['email', 'id', 'role'] | PASA
+BE-AUT-15 | Repetir el alta del segundo factor ya activado | 409 | 409 | PASA
+BE-AUT-16 | Segundo ingreso del administrador | 200 needs=totp | 200 needs=totp | PASA
+BE-AUT-17 | Usar el token intermedio como sesion | 401 | 401 | PASA
+BE-AUT-18 | Verificar el segundo factor | 200 | 200 | PASA
+BE-AUT-19 | Repetir el mismo codigo y el mismo token intermedio | 401 (codigo de un solo uso) | 200 | FALLA
+BE-USU-01 | Crear una cuenta de empleada | 201 rol employee | 201 rol=employee | PASA
+BE-USU-02 | Crear otra cuenta con el mismo correo | 409 | 409 | PASA
+BE-USU-03 | Crear una cuenta con clave de 7 caracteres | 400 | 400 | PASA
+BE-USU-04 | Crear una cuenta con un rol que no existe | 400 | 400 | PASA
+BE-USU-05 | Crear una cuenta con un correo sin formato de correo | 400 | 400 | PASA
+BE-USU-06 | Crear una cuenta con la clave como numero | 400 | 400 | PASA
+BE-USU-07 | Primer ingreso de la empleada | sesion con rol employee | 200 rol=employee | PASA
+BE-USU-08 | La empleada usa las rutas de administracion | 403 en las 4 | [403, 403, 403, 403] | PASA
+BE-USU-09 | Listado de usuarios | 200 sin hash de clave ni secreto | 200 campos=['active', 'email', 'id', 'last_login_at', 'name', 'role', 'totp_enabled'] | PASA
+BE-USU-10 | El administrador se quita su propio rol | 400 | 400 | PASA
+BE-USU-11 | El administrador se borra a si mismo | 400 | 400 | PASA
+BE-USU-12 | Modificar un usuario que no existe | 404 | 404 {'error': 'no existe'} | PASA
+BE-USU-13 | Modificar un usuario con un id invalido | 400 | 400 | PASA
+BE-BLO-01 | Seis ingresos con clave equivocada | 401 x5 y 429 en el sexto | [401, 401, 401, 401, 401, 429] | PASA
+BE-BLO-02 | Clave correcta con la cuenta bloqueada | 429 | 429 | PASA
+BE-BLO-03 | La sesion abierta antes del bloqueo sigue activa | 200 (dato: el bloqueo no cierra sesiones) | 200 | DATO
+BE-BLO-04 | Vencido el bloqueo: un solo error y despues la clave correcta | 401 y 200 (cinco intentos nuevos) | 401 y 200 | PASA
+BE-MAT-01 | Crear material Hilo (1000 por 50 m, stock 10) | 201 unit_cost 20 | 201 unit_cost=20.0 | PASA
+BE-MAT-02 | Crear material Dije (300 por 3 un) | 201 unit_cost 100 | 201 unit_cost=100.0 | PASA
+BE-MAT-03 | Crear material: sin nombre | 400 con mensaje | 400 {"error": "name es obligatorio"} | PASA
+BE-MAT-04 | Crear material: unidad kg | 400 con mensaje | 400 {"error": "unit inválida"} | PASA
+BE-MAT-05 | Crear material: stock negativo | 400 con mensaje | 400 {"error": "valor fuera de rango"} | PASA
+BE-MAT-06 | Crear material: precio negativo | 400 con mensaje | 400 {"error": "valor fuera de rango"} | PASA
+BE-MAT-07 | Crear material: cantidad comprada 0 | 400 con mensaje | 400 {"error": "valor fuera de rango"} | PASA
+BE-MAT-08 | Crear material: stock como texto | 400 con mensaje | 400 {"error": "tipo de dato inválido"} | PASA
+BE-MAT-09 | Crear material: nombre de 121 caracteres | 400 con mensaje | 400 {"error": "valor fuera de rango"} | PASA
+BE-MAT-10 | Crear material: nombre como numero | 400 con mensaje | 400 {"error": "tipo de dato inválido"} | PASA
+BE-MAT-11 | Crear material: nombre de solo espacios | 400 con mensaje | 400 {"error": "name es obligatorio"} | PASA
+BE-MAT-12 | El servicio sigue respondiendo despues de los datos invalidos | 200 | 200 | PASA
+BE-MAT-13 | Ajustar el stock de Hilo a 12,5 | 200 current_stock 12.5 | 200 12.5 | PASA
+BE-MAT-14 | El ajuste de stock queda en los movimientos | 1 movimiento de ajuste | 200 movimientos=1 | PASA
+BE-MAT-15 | Ajustar el stock a un valor negativo | 400 | 400 | PASA
+BE-MAT-16 | Modificar un material que no existe | 404 | 404 | PASA
+BE-MAT-17 | Dejar un material sin nombre | 400 | 400 | PASA
+BE-MAT-18 | Listado de materiales | 200 con Dije y Hilo en orden | 200 ['Dije', 'Hilo'] | PASA
+BE-PRO-01 | Crear producto Clasica con receta de 2 materiales | 201 | 201 | PASA
+BE-PRO-02 | Listado de productos con su receta | Clasica con 2 renglones | 200 renglones=2 | PASA
+BE-PRO-03 | Receta con el mismo material dos veces (3 y 4) | 400, o un renglon de 7 | 201 cantidades=[7.0] | PASA
+BE-PRO-04 | Crear producto: sin nombre | 400 con mensaje | 400 {"error": "name es obligatorio"} | PASA
+BE-PRO-05 | Crear producto: tipo de ganancia invalido | 400 con mensaje | 400 {"error": "profit_type inválido"} | PASA
+BE-PRO-06 | Crear producto: mano de obra negativa | 400 con mensaje | 400 {"error": "valor fuera de rango"} | PASA
+BE-PRO-07 | Crear producto: ganancia negativa | 400 con mensaje | 400 {"error": "valor fuera de rango"} | PASA
+BE-PRO-08 | Crear producto: receta con cantidad 0 | 400 con mensaje | 400 {"error": "receta inválida"} | PASA
+BE-PRO-09 | Crear producto: receta con un material que no existe | 400 con mensaje | 400 {"error": "material de la receta inexistente"} | PASA
+BE-PRO-10 | Crear producto: receta que no es una lista | 400 con mensaje | 400 {"error": "receta inválida"} | PASA
+BE-PRO-11 | Crear producto: costo como texto | 400 con mensaje | 400 {"error": "tipo de dato inválido"} | PASA
+BE-PRO-12 | Los pedidos rechazados no dejan productos creados | ningun producto X | [] | PASA
+BE-PRO-13 | Modificar y borrar un producto | dato: la API no tiene esas rutas | [404, 404] | DATO
+BE-PRD-01 | Armar 2 Clasica | 201 produced 2 | 201 {'produced': 2} | PASA
+BE-PRD-02 | Stock de materiales despues de armar 2 | Hilo 11.5 y Dije 2 | {'Dije': 2.0, 'Hilo': 11.5} | PASA
+BE-PRD-03 | Stock terminado de Clasica | 2 | 2 | PASA
+BE-PRD-04 | Movimientos de la produccion | -2 de Dije y -1 de Hilo | [-2.0, -1.0] | PASA
+BE-PRD-05 | Costos guardados en la orden (materiales 110, extra 290, costo 400, precio 800) | materials_cost 110, total_cost 400, unit_price 800 | {"quantity": 2, "extra_cost": 290.0, "total_cost": 400.0, "unit_price": 800.0, "materials_cost": 110.0} | PASA
+BE-PRD-06 | Armar 3 con Dije para 2 | 409 stock insuficiente de Dije | 409 {'error': 'Stock insuficiente de Dije'} | PASA
+BE-PRD-07 | El rechazo no descuenta stock | Hilo 11.5 y Dije 2 | {'Dije': 2.0, 'Hilo': 11.5} | PASA
+BE-PRD-08 | Armar con cantidad 0 | 400 cantidad invalida | 400 {"error": "quantity debe ser un entero mayor que 0"} | PASA
+BE-PRD-09 | Armar con cantidad -1 | 400 cantidad invalida | 400 {"error": "quantity debe ser un entero mayor que 0"} | PASA
+BE-PRD-10 | Armar con cantidad 1,9 | 400 cantidad invalida | 400 {"error": "quantity debe ser un entero mayor que 0"} | PASA
+BE-PRD-11 | Armar con cantidad el texto "1" | 400 cantidad invalida | 400 {"error": "quantity debe ser un entero mayor que 0"} | PASA
+BE-PRD-12 | Armar con cantidad 10000000000 | 400 cantidad invalida | 400 {"error": "quantity demasiado grande"} | PASA
+BE-PRD-13 | Armar un producto que no existe | 404 | 404 {'error': 'Producto inexistente'} | PASA
+BE-PRD-14 | Borrar un material usado en una receta | 409 | 409 | PASA
+BE-PRD-15 | El servicio sigue respondiendo | 200 | 200 | PASA
+BE-EST-01 | GET /api/state en una base nueva | 200 data null | 200 {'data': None} | PASA
+BE-EST-02 | Guardar el estado y leerlo desde otra cuenta | 200 y el mismo estado | 200 {'data': {'productos': [], 'materiales': [{'id': 'm1', 'nombre': 'Hilo'}]}} | PASA
+BE-EST-03 | Guardar un estado con forma invalida | 400 | 400 | PASA
+BE-EST-04 | Guardar un estado de mas de 2 MB | 413 | 413 | PASA
+BE-EST-05 | Los materiales guardados desde la pantalla aparecen en /api/materials | el Hilo de la pantalla y el de la API son el mismo dato | pantalla=1 material; API=2 materiales, sin relacion | DATO
+BE-EST-06 | La empleada reemplaza todo el estado por uno vacio | dato: no hay permisos por rol sobre los datos | 200 queda={'data': {'productos': [], 'materiales': []}} | DATO
+BE-EST-07 | Guardar un material cuyo id contiene HTML | 400, o se guarda y la pantalla lo muestra como texto | 200 (se comprueba en el navegador) | DATO
+BE-ROL-01 | La empleada borra un material | dato: lo decide el equipo (hoy cualquier cuenta puede) | 409 | DATO
+BE-SES-01 | Cerrar sesion y volver a usar la cookie anterior | 200 y despues 401 | 200 y 401 | PASA
+BE-SES-02 | Desactivar a la empleada | 200; su sesion responde 401 y no puede ingresar | 200; sesion 401; ingreso 403 | PASA
+BE-SES-03 | Reiniciar el segundo factor de la empleada | 200 y el ingreso pide configurarlo de nuevo | 200 needs=setup | PASA
+BE-SES-04 | Borrar a la empleada, que tiene ordenes de produccion | 409 con el aviso de desactivar | 409 | PASA
+BE-SES-05 | Los cambios de usuarios quedan registrados | al menos 4 registros | 4 | PASA
+BE-FIN-01 | El servicio termina la corrida respondiendo | 200 | 200 | PASA
+TOTAL | PASA 92 | FALLA 2 | DATO 7
