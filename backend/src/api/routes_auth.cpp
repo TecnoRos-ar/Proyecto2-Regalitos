@@ -68,9 +68,12 @@ static std::string qr_to_svg(const qrcodegen::QrCode& qr, int border = 4) {
 }
 
 static const char* FAIL_SQL =
-    "UPDATE users SET failed_attempts = failed_attempts + 1, "
-    "locked_until = CASE WHEN failed_attempts + 1 >= 5 "
-    "  THEN now() + interval '15 minutes' ELSE locked_until END "
+    // Un bloqueo vencido reinicia la cuenta: vuelven a ser cinco intentos.
+    "UPDATE users SET "
+    "failed_attempts = CASE WHEN locked_until <= now() THEN 1 ELSE failed_attempts + 1 END, "
+    "locked_until = CASE WHEN locked_until <= now() THEN NULL "
+    "  WHEN failed_attempts + 1 >= 5 THEN now() + interval '15 minutes' "
+    "  ELSE locked_until END "
     "WHERE id = $1";
 
 static bool is_locked(pqxx::work& tx, const std::string& id) {
