@@ -231,6 +231,14 @@ nav.tabs a{padding:9px 18px}
       s.ejemplo = !!raw.ejemplo;
     }
     s.productos.forEach(function(p){ if(!Array.isArray(p.receta)) p.receta = []; });
+    // Los id van a atributos HTML: uno que no sea alfanumérico (estado manipulado) se reemplaza.
+    var seguro = /^[A-Za-z0-9_-]+$/, cambio = {};
+    s.materiales.concat(s.productos).forEach(function(x){
+      if(!seguro.test(x.id)){ var nuevo = uid(); cambio[x.id] = nuevo; x.id = nuevo; }
+    });
+    s.productos.forEach(function(p){ p.receta.forEach(function(r){
+      if(!seguro.test(r.matId)) r.matId = cambio[r.matId] || '';
+    }); });
     return s;
   }
   function uid(){ return Math.random().toString(36).slice(2, 8); }
