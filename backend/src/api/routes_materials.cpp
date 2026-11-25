@@ -45,7 +45,7 @@ void register_material_routes(crow::SimpleApp& app, ConnectionPool& pool) {
 
         auto name = body.value("name", std::string{});
         auto unit = body.value("unit", std::string{"un"});
-        if (name.empty())
+        if (db::is_blank(name))
             return crow::response{400, R"({"error":"name es obligatorio"})"};
         if (unit != "m" && unit != "un" && unit != "g")
             return crow::response{400, R"({"error":"unit inválida"})"};
@@ -81,6 +81,8 @@ void register_material_routes(crow::SimpleApp& app, ConnectionPool& pool) {
         for (auto k : {"current_stock", "last_purchase_price", "last_purchase_qty"})
             if (body.contains(k) && (!body[k].is_number() || body[k].get<double>() < 0))
                 return crow::response{400, R"({"error":"número inválido"})"};
+        if (body.contains("name") && db::is_blank(body["name"].get<std::string>()))
+            return crow::response{400, R"({"error":"name es obligatorio"})"};
         if (body.contains("unit")) {
             auto u = body["unit"].get<std::string>();
             if (u != "m" && u != "un" && u != "g")

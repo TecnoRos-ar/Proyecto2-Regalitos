@@ -53,4 +53,7 @@ inline bool is_uuid(const std::string& s) {
         "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$");
     return std::regex_match(s, re);
 }
+inline bool is_blank(const std::string& s) {
+    return s.find_first_not_of(" \t\r\n") == std::string::npos;
+}
 } // namespace db

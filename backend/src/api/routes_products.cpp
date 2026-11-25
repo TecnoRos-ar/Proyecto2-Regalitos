@@ -57,7 +57,7 @@ void register_product_routes(crow::SimpleApp& app, ConnectionPool& pool) {
         if (body.is_discarded())
             return crow::response{400, R"({"error":"JSON inválido"})"};
         auto name = body.value("name", std::string{});
-        if (name.empty())
+        if (db::is_blank(name))
             return crow::response{400, R"({"error":"name es obligatorio"})"};
 
         auto ptype = body.value("profit_type", std::string{"pct"});
