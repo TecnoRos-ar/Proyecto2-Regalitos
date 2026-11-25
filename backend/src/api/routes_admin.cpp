@@ -55,6 +55,10 @@ void register_admin_routes(crow::SimpleApp& app, ConnectionPool& pool) {
                 R"({"error":"email y password (>=8) requeridos"})"};
         if (role != "admin" && role != "employee")
             return crow::response{400, R"({"error":"role inválido"})"};
+        auto at = email.find('@');
+        if (at == std::string::npos || at == 0 || at + 1 == email.size() ||
+            email.find_first_of(" \t\r\n") != std::string::npos)
+            return crow::response{400, R"({"error":"email inválido"})"};
 
         auto conn = pool.acquire();
         pqxx::work tx{*conn};
