@@ -63,7 +63,9 @@ void register_product_routes(crow::SimpleApp& app, ConnectionPool& pool) {
         auto ptype = body.value("profit_type", std::string{"pct"});
         if (ptype != "pct" && ptype != "fixed")
             return crow::response{400, R"({"error":"profit_type inválido"})"};
-        if (body.contains("recipe") && body["recipe"].is_array())
+        if (body.contains("recipe") && !body["recipe"].is_array())
+            return crow::response{400, R"({"error":"receta inválida"})"};
+        if (body.contains("recipe"))
             for (auto& item : body["recipe"])
                 if (!item.is_object() || !db::is_uuid(item.value("material_id", std::string{})) ||
                     item.value("quantity", 0.0) <= 0)
