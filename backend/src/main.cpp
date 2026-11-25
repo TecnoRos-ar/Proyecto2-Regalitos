@@ -17,6 +17,7 @@ void register_production_routes(crow::SimpleApp&, ConnectionPool&);
 void register_auth_routes(crow::SimpleApp&, ConnectionPool&);
 void register_admin_routes(crow::SimpleApp&, ConnectionPool&);
 void register_state_routes(crow::SimpleApp&, ConnectionPool&);
+void register_password_routes(crow::SimpleApp&, ConnectionPool&);
 
 // ---------- helpers ----------
 static crow::response serve_file(const std::string& rel_path,
@@ -95,6 +96,8 @@ int main() {
         CROW_ROUTE(app, "/")      ([] { return serve_file("index.html", "text/html; charset=utf-8"); });
         CROW_ROUTE(app, "/login") ([] { return serve_file("login.html", "text/html; charset=utf-8"); });
         CROW_ROUTE(app, "/admin") ([] { return serve_file("admin.html", "text/html; charset=utf-8"); });
+        CROW_ROUTE(app, "/forgot")([] { return serve_file("forgot.html", "text/html; charset=utf-8"); });
+        CROW_ROUTE(app, "/reset") ([] { return serve_file("reset.html", "text/html; charset=utf-8"); });
 
         // ---- APIs ----
         register_auth_routes      (app, pool);
@@ -103,6 +106,7 @@ int main() {
         register_product_routes   (app, pool);
         register_production_routes(app, pool);
         register_state_routes     (app, pool);
+        register_password_routes  (app, pool);
 
         if (env("JWT_SECRET", "").size() < 32)
             CROW_LOG_WARNING << "JWT_SECRET ausente o corto (<32 chars): inseguro para producción";

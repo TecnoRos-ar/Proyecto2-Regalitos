@@ -5,7 +5,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y --no-install-recommends \
         build-essential cmake ninja-build git ca-certificates pkg-config \
         libpq-dev libssl-dev libsodium-dev nlohmann-json3-dev \
-        doctest-dev libasio-dev \
+        doctest-dev libasio-dev libcurl4-openssl-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Crow (framework web, solo headers)
@@ -48,7 +48,7 @@ FROM ubuntu:24.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        libpq5 libssl3t64 libsodium23 postgresql-client curl ca-certificates \
+        libpq5 libssl3t64 libsodium23 libcurl4t64 postgresql-client curl ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app

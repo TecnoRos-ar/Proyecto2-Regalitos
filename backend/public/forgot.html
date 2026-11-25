@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Regalitos Argentinos — Recuperar contraseña</title>
+<style>
+:root{color-scheme:light dark;--bg:#F4F6FB;--fg:#182036;--muted:#5B6480;--line:#D8DEEC;--accent:#2B78C9;--surface:#fff;--err:#B13B2A}
+@media (prefers-color-scheme:dark){:root{--bg:#10152B;--fg:#EEF0F8;--muted:#9BA4C6;--line:#2F3966;--accent:#6DB0F0;--surface:#1A2142;--err:#FF9080}}
+*{box-sizing:border-box}
+body{margin:0;min-height:100dvh;display:grid;place-items:center;background:var(--bg);color:var(--fg);
+  font:15px/1.5 system-ui,-apple-system,sans-serif;padding:20px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:16px;
+  padding:30px;width:100%;max-width:420px;box-shadow:0 12px 32px -16px rgba(24,32,54,.2)}
+h1{margin:0 0 6px;font-size:22px;letter-spacing:-.01em}
+p.sub{color:var(--muted);margin:0 0 22px;font-size:14px}
+label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px;margin-top:16px}
+input{width:100%;padding:11px 13px;border-radius:10px;border:1px solid var(--line);
+  background:var(--surface);color:var(--fg);font:inherit;font-size:16px}
+input:focus{outline:2px solid var(--accent);outline-offset:1px}
+button{width:100%;margin-top:22px;padding:12px;border:0;border-radius:10px;
+  background:var(--accent);color:#fff;font:inherit;font-weight:600;cursor:pointer;font-size:15px}
+button:disabled{opacity:.6;cursor:not-allowed}
+.err{color:var(--err);font-size:13px;margin-top:14px;min-height:1.2em}
+.ok{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:12px 14px;font-size:14px}
+.links{margin-top:14px;text-align:center;font-size:14px}
+.links a{color:var(--accent);text-decoration:none}
+.links a:hover{text-decoration:underline}
+.hidden{display:none}
+</style>
+</head>
+<body>
+<form class="card" id="f">
+  <h1>Recuperar contraseña</h1>
+  <p class="sub">Escribí el email de tu cuenta y te mandamos un enlace para elegir una contraseña nueva.</p>
+
+  <div id="ask">
+    <label for="email">Email</label>
+    <input type="email" id="email" autocomplete="username" required>
+    <button type="submit" id="b">Enviar enlace</button>
+  </div>
+
+  <p class="ok hidden" id="done">
+    Si el email está registrado, te llega un mensaje con el enlace en unos minutos.
+    Revisá también la carpeta de spam. El enlace vence en 30 minutos.
+  </p>
+
+  <div class="err" id="err"></div>
+  <p class="links"><a href="/login">Volver a entrar</a></p>
+</form>
+
+<script>
+const $ = id => document.getElementById(id);
+$('f').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  $('err').textContent = '';
+  $('b').disabled = true;
+  try {
+    const r = await fetch('/api/auth/password/forgot', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ email: $('email').value.trim() }),
+      credentials: 'same-origin'
+    });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(j.error || 'No pudimos procesar el pedido. Probá de nuevo.');
+    $('ask').classList.add('hidden');
+    $('done').classList.remove('hidden');
+  } catch (err) {
+    $('err').textContent = err.message;
+  } finally {
+    $('b').disabled = false;
+  }
+});
+</script>
+</body>
+</html>

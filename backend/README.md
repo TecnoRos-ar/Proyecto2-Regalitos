@@ -23,6 +23,7 @@ Prueba:   curl -s http://localhost:8080/health
 las migraciones nuevas se aplican a mano, por ejemplo:
 
     psql "$DATABASE_URL" -f migrations/003_session_version.sql
+    psql "$DATABASE_URL" -f migrations/004_password_reset.sql
 
 La imagen (`Dockerfile`) las aplica sola al arrancar.
 
@@ -37,7 +38,10 @@ La imagen (`Dockerfile`) las aplica sola al arrancar.
 - GET    /api/movements
 - GET    /api/state, PUT /api/state   (estado de la app web)
 - Auth: /api/auth/login, /api/auth/totp/{setup,enable,verify}, /api/auth/logout, /api/auth/me
+- Recuperación de contraseña: POST /api/auth/password/forgot { email }, POST /api/auth/password/reset { token, password }; páginas /forgot y /reset
 - Admin: /api/admin/users (GET/POST), /api/admin/users/:id (PUT/DELETE)
 
-Todas las rutas /api/* (salvo /api/auth/login y totp) requieren sesión.
+Todas las rutas /api/* (salvo /api/auth/login, totp y password) requieren sesión.
+La recuperación de contraseña usa APP_URL y, para enviar el correo, MAIL_PROVIDER (resend o brevo), MAIL_API_KEY y MAIL_FROM. Sin esas tres no se envía correo:
+el enlace se escribe en la salida del servidor (solo para pruebas).
 Tras 5 intentos fallidos (password o 2FA) la cuenta se bloquea 15 minutos.
