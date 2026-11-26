@@ -6,7 +6,7 @@ Uso (dentro de la VM de pruebas, con el backend y la base levantados):
     BASE=http://127.0.0.1:8080 ADMIN_EMAIL=... ADMIN_PASSWORD=... python3 -I 21.81-guion-recuperacion.py
 
 Escribe una linea por paso: ID | paso | esperado | obtenido | PASA/FALLA/DATO.
-Necesita una base recien creada y el backend sin proveedor de correo: asi el enlace
+Necesita una base recien creada y el backend con MAIL_PROVIDER=log: asi el enlace
 sale por el registro del contenedor, de donde lo lee el guion. Las claves se generan
 en cada corrida y no se guardan; el enlace no se imprime.
 """

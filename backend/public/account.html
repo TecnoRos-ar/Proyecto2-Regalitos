@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Regalitos Argentinos — Cambiar contraseña</title>
+<style>
+:root{color-scheme:light dark;--bg:#F4F6FB;--fg:#182036;--muted:#5B6480;--line:#D8DEEC;--accent:#2B78C9;--surface:#fff;--err:#B13B2A}
+@media (prefers-color-scheme:dark){:root{--bg:#10152B;--fg:#EEF0F8;--muted:#9BA4C6;--line:#2F3966;--accent:#6DB0F0;--surface:#1A2142;--err:#FF9080}}
+*{box-sizing:border-box}
+body{margin:0;min-height:100dvh;display:grid;place-items:center;background:var(--bg);color:var(--fg);
+  font:15px/1.5 system-ui,-apple-system,sans-serif;padding:20px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:16px;
+  padding:30px;width:100%;max-width:420px;box-shadow:0 12px 32px -16px rgba(24,32,54,.2)}
+h1{margin:0 0 6px;font-size:22px;letter-spacing:-.01em}
+p.sub{color:var(--muted);margin:0 0 22px;font-size:14px}
+label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px;margin-top:16px}
+input{width:100%;padding:11px 13px;border-radius:10px;border:1px solid var(--line);
+  background:var(--surface);color:var(--fg);font:inherit;font-size:16px}
+input:focus{outline:2px solid var(--accent);outline-offset:1px}
+button{width:100%;margin-top:22px;padding:12px;border:0;border-radius:10px;
+  background:var(--accent);color:#fff;font:inherit;font-weight:600;cursor:pointer;font-size:15px}
+button:disabled{opacity:.6;cursor:not-allowed}
+.err{color:var(--err);font-size:13px;margin-top:14px;min-height:1.2em}
+.ok{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:12px 14px;font-size:14px}
+.links{margin-top:14px;text-align:center;font-size:14px}
+.links a{color:var(--accent);text-decoration:none}
+.links a:hover{text-decoration:underline}
+.hidden{display:none}
+</style>
+</head>
+<body>
+<form class="card" id="f">
+  <h1>Cambiar contraseña</h1>
+  <p class="sub" id="who">Se cierran las sesiones abiertas en otros dispositivos.</p>
+  <div id="ask">
+    <label for="cur">Contraseña actual</label>
+    <input type="password" id="cur" autocomplete="current-password" required>
+    <label for="p1">Contraseña nueva (mínimo 8 caracteres)</label>
+    <input type="password" id="p1" autocomplete="new-password" minlength="8" required>
+    <label for="p2">Repetí la contraseña nueva</label>
+    <input type="password" id="p2" autocomplete="new-password" minlength="8" required>
+    <button type="submit" id="b">Cambiar contraseña</button>
+  </div>
+  <p class="ok hidden" id="done">Listo, tu contraseña cambió.</p>
+  <div class="err" id="err" role="alert"></div>
+  <p class="links"><a href="/">Volver a la app</a></p>
+</form>
+<script>
+const $ = id => document.getElementById(id);
+fetch('/api/auth/me', { credentials: 'same-origin' }).then(r => {
+  if (r.status === 401) location.href = '/login';
+});
+$('f').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  $('err').textContent = '';
+  if ($('p1').value !== $('p2').value) { $('err').textContent = 'Las contraseñas nuevas no coinciden.'; return; }
+  if ($('p1').value.trim().length < 8) { $('err').textContent = 'La contraseña nueva tiene que tener al menos 8 caracteres.'; return; }
+  $('b').disabled = true;
+  try {
+    const r = await fetch('/api/auth/password/change', {
+      method: 'POST', headers: { 'content-type': 'application/json' }, credentials: 'same-origin',
+      body: JSON.stringify({ current_password: $('cur').value, new_password: $('p1').value })
+    });
+    const j = await r.json().catch(() => ({}));
+    if (r.status === 401 && j.error === 'no autorizado') { location.href = '/login'; return; }
+    if (!r.ok) throw new Error(j.error || 'No pudimos cambiar la contraseña. Probá de nuevo.');
+    $('ask').classList.add('hidden');
+    $('done').classList.remove('hidden');
+  } catch (err) { $('err').textContent = err.message; }
+  finally { $('b').disabled = false; }
+});
+</script>
+</body>
+</html>

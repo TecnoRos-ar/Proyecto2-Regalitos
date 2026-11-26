@@ -55,8 +55,8 @@ WORKDIR /app
 COPY --from=build /src/build/regalitos ./regalitos
 COPY public ./public
 COPY migrations ./migrations
-COPY docker-entrypoint.sh ./docker-entrypoint.sh
-RUN chmod +x ./docker-entrypoint.sh
+COPY docker-entrypoint.sh scripts/migrate.sh scripts/backup.sh ./
+RUN chmod +x ./docker-entrypoint.sh ./migrate.sh ./backup.sh
 
 ENV PORT=8080 \
     PUBLIC_DIR=/app/public

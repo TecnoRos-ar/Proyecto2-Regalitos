@@ -9,6 +9,8 @@
 #include "db/pool.hpp"
 #include "auth/crypto.hpp"
 #include "auth/user_repo.hpp"
+#include "mail/mailer.hpp"
+#include <vector>
 
 // Forward decls de las rutas
 void register_material_routes(crow::SimpleApp&, ConnectionPool&);
@@ -41,6 +43,9 @@ static void ensure_bootstrap_admin(ConnectionPool& pool) {
 
     auto email = env("ADMIN_EMAIL", "admin@regalitos.local");
     auto pass  = env("ADMIN_PASSWORD", "cambiar123");
+    if (env("APP_ENV", "") == "production" && (pass == "cambiar123" || pass.size() < 12))
+        throw std::runtime_error(
+            "ADMIN_PASSWORD es la de ejemplo o tiene menos de 12 caracteres (APP_ENV=production)");
     auto hash  = auth::crypto::hash_password(pass);
     auth::create_user(tx, email, hash, "Admin", "admin");
     tx.commit();
@@ -53,10 +58,34 @@ static void ensure_bootstrap_admin(ConnectionPool& pool) {
               << "=============================================\n\n";
 }
 
+// Secretos y HTTPS: en producción no se arranca con valores de ejemplo.
+static void check_production_config() {
+    bool prod = env("APP_ENV", "") == "production";
+    std::vector<std::string> errs, warns;
+    auto jwt = env("JWT_SECRET", "");
+    if (jwt.size() < 32 || jwt.find("gener") != std::string::npos)
+        errs.push_back("JWT_SECRET ausente, corto (<32) o de ejemplo. Generalo con: openssl rand -hex 32");
+    if (env("DATABASE_URL", "").find("regalitos:regalitos@") != std::string::npos)
+        errs.push_back("DATABASE_URL usa la clave de ejemplo de la base");
+    auto url = env("APP_URL", "");
+    if (url.rfind("https://", 0) != 0 && env("COOKIE_SECURE", "") != "1")
+        errs.push_back("APP_URL no es https:// (la cookie de sesión viajaría por HTTP)");
+    if (!mail::configured())
+        warns.push_back("correo sin configurar: no se envían enlaces de recuperación ni avisos de registro");
+    for (auto& w : warns) CROW_LOG_WARNING << w;
+    for (auto& e : errs) {
+        if (prod) std::cerr << "CONFIG: " << e << "\n";
+        else CROW_LOG_WARNING << e << " (se ignora fuera de APP_ENV=production)";
+    }
+    if (prod && !errs.empty())
+        throw std::runtime_error("configuración insegura para producción");
+}
+
 // ---------- main ----------
 int main() {
     try {
         auth::crypto::init();
+        check_production_config();
 
         auto conn_str  = env("DATABASE_URL",
             "postgresql://regalitos:regalitos@localhost:5532/regalitos");
@@ -98,6 +127,8 @@ int main() {
         CROW_ROUTE(app, "/admin") ([] { return serve_file("admin.html", "text/html; charset=utf-8"); });
         CROW_ROUTE(app, "/forgot")([] { return serve_file("forgot.html", "text/html; charset=utf-8"); });
         CROW_ROUTE(app, "/reset") ([] { return serve_file("reset.html", "text/html; charset=utf-8"); });
+        CROW_ROUTE(app, "/register")([] { return serve_file("register.html", "text/html; charset=utf-8"); });
+        CROW_ROUTE(app, "/account") ([] { return serve_file("account.html", "text/html; charset=utf-8"); });
 
         // ---- APIs ----
         register_auth_routes      (app, pool);
@@ -107,9 +138,6 @@ int main() {
         register_production_routes(app, pool);
         register_state_routes     (app, pool);
         register_password_routes  (app, pool);
-
-        if (env("JWT_SECRET", "").size() < 32)
-            CROW_LOG_WARNING << "JWT_SECRET ausente o corto (<32 chars): inseguro para producción";
 
         auto port = std::stoi(env("PORT", "8080"));
         CROW_LOG_INFO << "regalitos-backend escuchando en :" << port;

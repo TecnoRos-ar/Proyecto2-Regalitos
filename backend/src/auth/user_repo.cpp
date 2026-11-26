@@ -14,6 +14,7 @@ static User row_to_user(const pqxx::row_ref& r) {
     u.totp_enabled        = r["totp_enabled"].as<bool>();
     u.failed_attempts     = r["failed_attempts"].as<int>();
     u.session_version     = r["session_version"].as<int>();
+    u.pending             = r["pending"].as<bool>();
     u.password_changed_at = r["password_changed_at"].as<std::string>();
     if (!r["totp_secret"].is_null()) u.totp_secret = r["totp_secret"].as<std::string>();
     if (!r["locked_until"].is_null()) u.locked_until = r["locked_until"].as<std::string>();
@@ -21,7 +22,7 @@ static User row_to_user(const pqxx::row_ref& r) {
 }
 
 std::optional<User> find_by_email(pqxx::work& tx, const std::string& email) {
-    auto r = db::exec(tx, "SELECT * FROM users WHERE email = $1 FOR UPDATE", email);
+    auto r = db::exec(tx, "SELECT * FROM users WHERE lower(email) = lower($1) FOR UPDATE", email);
     if (r.empty()) return std::nullopt;
     return row_to_user(r[0]);
 }

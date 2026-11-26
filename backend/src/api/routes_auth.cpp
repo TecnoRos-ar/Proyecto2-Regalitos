@@ -7,6 +7,11 @@
 #include "auth/middleware.hpp"
 #include "config.hpp"
 #include "qrcodegen.hpp"
+#include "mail/mailer.hpp"
+#include <algorithm>
+#include <cctype>
+#include <iostream>
+#include <thread>
 
 using njson = nlohmann::json;
 using namespace crow;
@@ -35,14 +40,40 @@ static std::string make_session(const std::string& id, const std::string& email,
     };
     return auth::crypto::jwt_sign(p, secret());
 }
+// REG-HAL-41: con HTTPS la cookie lleva Secure y no viaja por HTTP.
+// COOKIE_SECURE=1/0 lo fuerza; si no está, se deduce de APP_URL.
+static bool cookie_secure() {
+    auto v = env("COOKIE_SECURE", "");
+    if (v == "1" || v == "true")  return true;
+    if (v == "0" || v == "false") return false;
+    return env("APP_URL", "").rfind("https://", 0) == 0;
+}
+static std::string cookie_attrs() {
+    return std::string("; Path=/; HttpOnly; SameSite=Lax") +
+           (cookie_secure() ? "; Secure" : "");
+}
 static void set_cookie(crow::response& res, const std::string& token, int ttl) {
-    std::string c = "session=" + token +
-        "; Path=/; HttpOnly; SameSite=Lax; Max-Age=" + std::to_string(ttl);
-    res.set_header("Set-Cookie", c);
+    res.set_header("Set-Cookie",
+        "session=" + token + cookie_attrs() + "; Max-Age=" + std::to_string(ttl));
 }
 static void clear_cookie(crow::response& res) {
-    res.set_header("Set-Cookie",
-        "session=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0");
+    res.set_header("Set-Cookie", "session=" + cookie_attrs() + "; Max-Age=0");
+}
+static std::string client_ip(const crow::request& req) {
+    auto xff = req.get_header_value("X-Forwarded-For");
+    if (!xff.empty()) return xff.substr(0, xff.find(','));
+    return req.remote_ip_address;
+}
+static std::string str_field(const njson& b, const char* k) {
+    if (!b.contains(k) || !b[k].is_string()) return {};
+    return b[k].get<std::string>();
+}
+static std::string lower_trim(std::string s) {
+    auto a = s.find_first_not_of(" \t\r\n");
+    auto z = s.find_last_not_of(" \t\r\n");
+    s = a == std::string::npos ? "" : s.substr(a, z - a + 1);
+    std::transform(s.begin(), s.end(), s.begin(), [](unsigned char c){ return std::tolower(c); });
+    return s;
 }
 
 
@@ -100,7 +131,10 @@ void register_auth_routes(crow::SimpleApp& app, ConnectionPool& pool) {
         pqxx::work tx{*conn};
         auto u = auth::find_by_email(tx, email);
         if (!u) return crow::response{401, R"({"error":"credenciales inválidas"})"};
-        if (!u->active) return crow::response{403, R"({"error":"usuario deshabilitado"})"};
+        if (!u->active)
+            return crow::response{403, u->pending
+                ? R"({"error":"tu cuenta está pendiente de aprobación de un administrador"})"
+                : R"({"error":"usuario deshabilitado"})"};
         if (is_locked(tx, u->id)) return locked_resp();
 
         if (!auth::crypto::verify_password(pass, u->password_hash)) {
@@ -166,11 +200,18 @@ void register_auth_routes(crow::SimpleApp& app, ConnectionPool& pool) {
         if (!u->active) return crow::response{403, R"({"error":"usuario deshabilitado"})"};
         if (is_locked(tx, u->id)) return locked_resp();
 
-        auto code = body.value("code","");
-        if (!auth::crypto::totp_verify(*u->totp_secret, code)) {
+        // REG-HAL-32: cada código sirve una sola vez. Se guarda el último paso
+        // aceptado y solo se aceptan pasos posteriores (UPDATE atómico).
+        auto code = str_field(body, "code");
+        auto step = auth::crypto::totp_match_step(*u->totp_secret, code);
+        bool ok = step && !db::exec(tx,
+            "UPDATE users SET totp_last_step = $2 WHERE id = $1 "
+            "AND (totp_last_step IS NULL OR totp_last_step < $2) RETURNING id",
+            u->id, *step).empty();
+        if (!ok) {
             db::exec(tx, FAIL_SQL, u->id);
             tx.commit();
-            return crow::response{401, R"({"error":"código inválido"})"};
+            return crow::response{401, R"({"error":"código inválido o ya usado"})"};
         }
 
         if (enable) {
@@ -210,6 +251,115 @@ void register_auth_routes(crow::SimpleApp& app, ConnectionPool& pool) {
         }
         crow::response res{200, R"({"ok":true})"};
         clear_cookie(res);
+        return res;
+    });
+
+    // ---- Registro: la cuenta queda pendiente hasta que un admin la active ----
+    CROW_ROUTE(app, "/api/auth/register").methods("POST"_method)
+    ([&pool](const crow::request& req) {
+        if (env("ALLOW_REGISTRATION", "true") == "false")
+            return crow::response{403, R"({"error":"el registro está deshabilitado"})"};
+        auto body = njson::parse(req.body, nullptr, false);
+        if (body.is_discarded() || !body.is_object()) return crow::response{400};
+        auto email = lower_trim(str_field(body, "email"));
+        auto pass  = str_field(body, "password");
+        auto name  = str_field(body, "name");
+        if (!db::is_email(email))
+            return crow::response{400, R"({"error":"correo inválido"})"};
+        if (pass.size() < 8 || pass.size() > 256 || db::is_blank(pass))
+            return crow::response{400, R"({"error":"la contraseña tiene que tener al menos 8 caracteres"})"};
+        if (name.size() > 120)
+            return crow::response{400, R"({"error":"nombre demasiado largo"})"};
+
+        auto ip   = client_ip(req);
+        auto hash = auth::crypto::hash_password(pass);
+        auto conn = pool.acquire();
+        pqxx::work tx{*conn};
+        auto recent = db::exec(tx,
+            "SELECT count(*) FROM audit_log WHERE action = 'user.register' "
+            "AND metadata->>'ip' = $1 AND created_at > now() - interval '1 hour'",
+            ip)[0][0].as<int>();
+        if (recent >= 5)
+            return crow::response{429, R"({"error":"demasiados registros desde esta conexión, probá más tarde"})"};
+
+        auto r = db::exec(tx,
+            "INSERT INTO users (email, password_hash, name, role, active, pending) "
+            "SELECT $1, $2, NULLIF($3, ''), 'employee', false, true "
+            "WHERE NOT EXISTS (SELECT 1 FROM users WHERE lower(email) = $1) "
+            "ON CONFLICT (email) DO NOTHING RETURNING id",
+            email, hash, name);
+        std::string uid = r.empty() ? "" : r[0][0].as<std::string>();
+        db::exec(tx,
+            "INSERT INTO audit_log (user_id, action, metadata) "
+            "VALUES (NULLIF($1, '')::uuid, 'user.register', $2::jsonb)",
+            uid, njson({{"ip", ip}, {"created", !uid.empty()}}).dump());
+        std::vector<std::string> admins;
+        if (!uid.empty())
+            for (auto row : db::exec(tx,
+                    "SELECT email FROM users WHERE role = 'admin' AND active"))
+                admins.push_back(row[0].as<std::string>());
+        tx.commit();
+
+        // Aviso a los admins para que aprueben la cuenta (si hay correo configurado).
+        if (!admins.empty() && mail::configured()) {
+            std::thread([admins, email] {
+                for (auto& to : admins) {
+                    mail::Message m;
+                    m.to = to;
+                    m.subject = "Regalitos: nueva cuenta pendiente de aprobación";
+                    m.text = "Se registró " + email + ". Activala desde " +
+                             env("APP_URL", "") + "/admin si corresponde.\n";
+                    m.html = "<p>Se registró <b>" + email + "</b>.</p><p>Activala desde "
+                             "el panel de usuarios si corresponde.</p>";
+                    std::string err;
+                    if (!mail::send(m, err))
+                        std::cerr << "[registro] No se pudo avisar a un admin: " << err << "\n";
+                }
+            }).detach();
+        }
+        // Misma respuesta exista o no la cuenta: no revela correos registrados.
+        return crow::response{202,
+            R"({"ok":true,"message":"Si el correo no estaba registrado, tu cuenta quedó creada. Un administrador tiene que aprobarla antes de que puedas entrar."})"};
+    });
+
+    // ---- Cambio de contraseña con sesión iniciada ----
+    CROW_ROUTE(app, "/api/auth/password/change").methods("POST"_method)
+    ([&pool](const crow::request& req) {
+        auto me = auth::get_user(req, pool);
+        if (!me) return auth::unauthorized();
+        auto body = njson::parse(req.body, nullptr, false);
+        if (body.is_discarded() || !body.is_object()) return crow::response{400};
+        auto current = str_field(body, "current_password");
+        auto next    = str_field(body, "new_password");
+        if (current.empty())
+            return crow::response{400, R"({"error":"falta la contraseña actual"})"};
+        if (next.size() < 8 || next.size() > 256 || db::is_blank(next))
+            return crow::response{400, R"({"error":"la contraseña nueva tiene que tener al menos 8 caracteres"})"};
+        if (next == current)
+            return crow::response{400, R"({"error":"la contraseña nueva tiene que ser distinta de la actual"})"};
+
+        auto new_hash = auth::crypto::hash_password(next);
+        auto conn = pool.acquire();
+        pqxx::work tx{*conn};
+        auto u = auth::find_by_id(tx, me->id);
+        if (!u) return auth::unauthorized();
+        if (is_locked(tx, u->id)) return locked_resp();
+        if (!auth::crypto::verify_password(current, u->password_hash)) {
+            db::exec(tx, FAIL_SQL, u->id);
+            tx.commit();
+            return crow::response{401, R"({"error":"la contraseña actual no es correcta"})"};
+        }
+        // Cierra las demás sesiones (session_version) y emite una nueva para esta.
+        auto sv = db::exec(tx,
+            "UPDATE users SET password_hash = $1, password_changed_at = now(), "
+            "session_version = session_version + 1, failed_attempts = 0, locked_until = NULL "
+            "WHERE id = $2 RETURNING session_version",
+            new_hash, u->id)[0][0].as<int>();
+        auth::log_audit(tx, u->id, "password.change", {{"ip", client_ip(req)}});
+        tx.commit();
+
+        crow::response res{200, R"({"ok":true})"};
+        set_cookie(res, make_session(u->id, u->email, u->role, sv), SESSION_TTL);
         return res;
     });
 

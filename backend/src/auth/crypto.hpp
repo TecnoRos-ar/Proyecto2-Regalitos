@@ -1,5 +1,6 @@
 // src/auth/crypto.hpp
 #pragma once
+#include <optional>
 #include <string>
 #include <ctime>
 #include <nlohmann/json.hpp>
@@ -16,6 +17,11 @@ std::string totp_now(const std::string& secret_b32, time_t t = 0);
 bool        totp_verify(const std::string& secret_b32,
                         const std::string& code,
                         int window = 1);
+
+// Devuelve el paso de 30 s en el que coincide el código (para no aceptarlo dos veces).
+std::optional<int64_t> totp_match_step(const std::string& secret_b32,
+                                       const std::string& code,
+                                       int window = 1);
 
 std::string jwt_sign(const nlohmann::json& payload, const std::string& secret);
 std::optional<nlohmann::json> jwt_verify(const std::string& token,

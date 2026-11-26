@@ -19,7 +19,7 @@ void register_admin_routes(crow::SimpleApp& app, ConnectionPool& pool) {
         auto conn = pool.acquire();
         pqxx::work tx{*conn};
         auto r = tx.exec(
-            "SELECT id, email, name, role, active, totp_enabled, last_login_at "
+            "SELECT id, email, name, role, active, pending, totp_enabled, last_login_at "
             "FROM users ORDER BY created_at");
         njson out = njson::array();
         for (const auto& row : r) {
@@ -29,6 +29,7 @@ void register_admin_routes(crow::SimpleApp& app, ConnectionPool& pool) {
                 {"name", row["name"].is_null()?"":row["name"].as<std::string>()},
                 {"role", row["role"].as<std::string>()},
                 {"active", row["active"].as<bool>()},
+                {"pending", row["pending"].as<bool>()},
                 {"totp_enabled", row["totp_enabled"].as<bool>()},
                 {"last_login_at", row["last_login_at"].is_null()?"":
                                   row["last_login_at"].as<std::string>()}
@@ -100,7 +101,7 @@ void register_admin_routes(crow::SimpleApp& app, ConnectionPool& pool) {
             db::exec(tx, "UPDATE users SET role=$1 WHERE id=$2", role, id);
         }
         if (body.contains("active")) {
-            db::exec(tx, "UPDATE users SET active=$1 WHERE id=$2",
+            db::exec(tx, "UPDATE users SET active=$1, pending=false WHERE id=$2",
                 body["active"].get<bool>(), id);
         }
         if (body.value("reset_2fa", false)) {

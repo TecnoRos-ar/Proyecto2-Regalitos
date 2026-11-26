@@ -13,6 +13,7 @@ struct User {
     std::optional<std::string> totp_secret;
     int failed_attempts = 0;
     int session_version = 0;
+    bool pending = false;
     std::optional<std::string> locked_until;
     std::string password_changed_at;
 };

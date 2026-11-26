@@ -125,6 +125,7 @@ void register_material_routes(crow::SimpleApp& app, ConnectionPool& pool) {
     ([&pool](const crow::request& req, std::string id) {
         auto me = auth::get_user(req, pool);
         if (!me) return auth::unauthorized();
+        if (me->role != "admin") return auth::forbidden();
         if (!db::is_uuid(id)) return crow::response{400, R"({"error":"id inválido"})"};
         auto conn = pool.acquire();
         pqxx::work tx{*conn};
