@@ -18,7 +18,11 @@ void register_production_routes(crow::SimpleApp& app, ConnectionPool& pool) {
             return crow::response{400, R"({"error":"JSON inválido"})"};
 
         auto product_id = body.value("product_id", std::string{});
-        int quantity    = body.value("quantity", 0);
+        if (!body["quantity"].is_number_integer() || body["quantity"].get<long long>() <= 0)
+            return crow::response{400, R"({"error":"quantity debe ser un entero mayor que 0"})"};
+        if (body["quantity"].get<long long>() > 1000000)
+            return crow::response{400, R"({"error":"quantity demasiado grande"})"};
+        int quantity = body["quantity"].get<int>();
         const auto& user_id = me->id;
 
         if (!db::is_uuid(product_id))
@@ -30,7 +34,8 @@ void register_production_routes(crow::SimpleApp& app, ConnectionPool& pool) {
             auto res = production_repo::produce(tx, product_id, quantity, user_id);
             if (!res.error.empty()) {
                 tx.abort();
-                return crow::response{409, njson{{"error", res.error}}.dump()};
+                int status = res.error == "Producto inexistente" ? 404 : 409;
+                return crow::response{status, njson{{"error", res.error}}.dump()};
             }
             tx.commit();
             return crow::response{201, njson{{"produced", res.produced}}.dump()};

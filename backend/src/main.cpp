@@ -1,4 +1,5 @@
 #include <crow.h>
+#include <nlohmann/json.hpp>
 #include <fstream>
 #include <iostream>
 #include <sstream>
@@ -64,6 +65,22 @@ int main() {
         ensure_bootstrap_admin(pool);
 
         crow::SimpleApp app;
+
+        // Datos con tipo o valor inválido: 400 en lugar de 500.
+        app.exception_handler([](crow::response& res) {
+            try {
+                throw;
+            } catch (const nlohmann::json::exception&) {
+                res = crow::response{400, R"({"error":"tipo de dato inválido"})"};
+            } catch (const pqxx::check_violation&) {
+                res = crow::response{400, R"({"error":"valor fuera de rango"})"};
+            } catch (const pqxx::data_exception&) {
+                res = crow::response{400, R"({"error":"valor fuera de rango"})"};
+            } catch (const std::exception& e) {
+                CROW_LOG_ERROR << "Excepción sin atrapar: " << e.what();
+                res = crow::response{500, R"({"error":"error interno"})"};
+            }
+        });
 
         // ---- Health ----
         CROW_ROUTE(app, "/health")([&pool] {

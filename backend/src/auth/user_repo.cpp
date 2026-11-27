@@ -13,6 +13,7 @@ static User row_to_user(const pqxx::row_ref& r) {
     u.active              = r["active"].as<bool>();
     u.totp_enabled        = r["totp_enabled"].as<bool>();
     u.failed_attempts     = r["failed_attempts"].as<int>();
+    u.session_version     = r["session_version"].as<int>();
     u.password_changed_at = r["password_changed_at"].as<std::string>();
     if (!r["totp_secret"].is_null()) u.totp_secret = r["totp_secret"].as<std::string>();
     if (!r["locked_until"].is_null()) u.locked_until = r["locked_until"].as<std::string>();

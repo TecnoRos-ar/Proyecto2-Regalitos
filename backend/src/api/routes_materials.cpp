@@ -45,7 +45,7 @@ void register_material_routes(crow::SimpleApp& app, ConnectionPool& pool) {
 
         auto name = body.value("name", std::string{});
         auto unit = body.value("unit", std::string{"un"});
-        if (name.empty())
+        if (db::is_blank(name))
             return crow::response{400, R"({"error":"name es obligatorio"})"};
         if (unit != "m" && unit != "un" && unit != "g")
             return crow::response{400, R"({"error":"unit inválida"})"};
@@ -81,6 +81,8 @@ void register_material_routes(crow::SimpleApp& app, ConnectionPool& pool) {
         for (auto k : {"current_stock", "last_purchase_price", "last_purchase_qty"})
             if (body.contains(k) && (!body[k].is_number() || body[k].get<double>() < 0))
                 return crow::response{400, R"({"error":"número inválido"})"};
+        if (body.contains("name") && db::is_blank(body["name"].get<std::string>()))
+            return crow::response{400, R"({"error":"name es obligatorio"})"};
         if (body.contains("unit")) {
             auto u = body["unit"].get<std::string>();
             if (u != "m" && u != "un" && u != "g")
@@ -91,6 +93,9 @@ void register_material_routes(crow::SimpleApp& app, ConnectionPool& pool) {
 
         auto conn = pool.acquire();
         pqxx::work tx{*conn};
+        auto before = db::exec(tx,
+            "SELECT current_stock FROM materials WHERE id = $1 FOR UPDATE", id);
+        if (before.empty()) return crow::response{404, R"({"error":"no existe"})"};
         auto r = db::exec(tx,
             "UPDATE materials SET "
             "name = COALESCE($2, name), "
@@ -105,7 +110,12 @@ void register_material_routes(crow::SimpleApp& app, ConnectionPool& pool) {
             body.contains("current_stock")       ? std::optional<double>(body["current_stock"])       : std::nullopt,
             body.contains("last_purchase_price") ? std::optional<double>(body["last_purchase_price"]) : std::nullopt,
             body.contains("last_purchase_qty")   ? std::optional<double>(body["last_purchase_qty"])   : std::nullopt);
-        if (r.empty()) return crow::response{404, R"({"error":"no existe"})"};
+        // El cambio manual de stock queda en el historial como ajuste.
+        db::exec(tx,
+            "INSERT INTO stock_movements (material_id, kind, delta, note) "
+            "SELECT $1, 'adjustment', $2::numeric - $3::numeric, 'Ajuste manual de stock' "
+            "WHERE $2::numeric <> $3::numeric",
+            id, r[0]["current_stock"].as<std::string>(), before[0][0].as<std::string>());
         auto out = row_to_material(r[0]);
         tx.commit();
         return crow::response{200, out.dump()};

@@ -16,6 +16,14 @@ psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -q -c \
      applied_at TIMESTAMPTZ NOT NULL DEFAULT now()
    );"
 
+# Base creada con docker-compose: initdb ya aplicó 001 y 002; se registran sin repetirlas.
+registradas=$(psql "$DATABASE_URL" -tAc "SELECT count(*) FROM schema_migrations")
+con_esquema=$(psql "$DATABASE_URL" -tAc "SELECT to_regclass('public.audit_log') IS NOT NULL")
+if [ "$registradas" = "0" ] && [ "$con_esquema" = "t" ]; then
+  psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -q -c \
+    "INSERT INTO schema_migrations (filename) VALUES ('001_init.sql'), ('002_auth.sql')"
+fi
+
 for f in /app/migrations/*.sql; do
   name=$(basename "$f")
   done_already=$(psql "$DATABASE_URL" -tAc \

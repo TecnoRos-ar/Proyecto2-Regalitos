@@ -57,13 +57,15 @@ void register_product_routes(crow::SimpleApp& app, ConnectionPool& pool) {
         if (body.is_discarded())
             return crow::response{400, R"({"error":"JSON inválido"})"};
         auto name = body.value("name", std::string{});
-        if (name.empty())
+        if (db::is_blank(name))
             return crow::response{400, R"({"error":"name es obligatorio"})"};
 
         auto ptype = body.value("profit_type", std::string{"pct"});
         if (ptype != "pct" && ptype != "fixed")
             return crow::response{400, R"({"error":"profit_type inválido"})"};
-        if (body.contains("recipe") && body["recipe"].is_array())
+        if (body.contains("recipe") && !body["recipe"].is_array())
+            return crow::response{400, R"({"error":"receta inválida"})"};
+        if (body.contains("recipe"))
             for (auto& item : body["recipe"])
                 if (!item.is_object() || !db::is_uuid(item.value("material_id", std::string{})) ||
                     item.value("quantity", 0.0) <= 0)
@@ -87,7 +89,8 @@ void register_product_routes(crow::SimpleApp& app, ConnectionPool& pool) {
                 for (auto& item : body["recipe"]) {
                     db::exec(tx,
                         "INSERT INTO recipe_items (product_id, material_id, quantity) "
-                        "VALUES ($1, $2, $3) ON CONFLICT DO NOTHING",
+                        "VALUES ($1, $2, $3) ON CONFLICT (product_id, material_id) "
+                        "DO UPDATE SET quantity = recipe_items.quantity + EXCLUDED.quantity",
                         pid,
                         item.value("material_id", std::string{}),
                         item.value("quantity", 0.0));

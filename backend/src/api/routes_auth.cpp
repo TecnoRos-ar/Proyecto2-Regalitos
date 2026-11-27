@@ -26,9 +26,9 @@ static std::string make_tmp(const std::string& user_id, const std::string& purpo
     return auth::crypto::jwt_sign(p, secret());
 }
 static std::string make_session(const std::string& id, const std::string& email,
-                                const std::string& role) {
+                                const std::string& role, int session_version) {
     njson p = {
-        {"sub", id}, {"email", email}, {"role", role},
+        {"sub", id}, {"email", email}, {"role", role}, {"sv", session_version},
         {"purpose", "session"},
         {"iat", (int64_t)std::time(nullptr)},
         {"exp", (int64_t)std::time(nullptr) + SESSION_TTL}
@@ -68,9 +68,12 @@ static std::string qr_to_svg(const qrcodegen::QrCode& qr, int border = 4) {
 }
 
 static const char* FAIL_SQL =
-    "UPDATE users SET failed_attempts = failed_attempts + 1, "
-    "locked_until = CASE WHEN failed_attempts + 1 >= 5 "
-    "  THEN now() + interval '15 minutes' ELSE locked_until END "
+    // Un bloqueo vencido reinicia la cuenta: vuelven a ser cinco intentos.
+    "UPDATE users SET "
+    "failed_attempts = CASE WHEN locked_until <= now() THEN 1 ELSE failed_attempts + 1 END, "
+    "locked_until = CASE WHEN locked_until <= now() THEN NULL "
+    "  WHEN failed_attempts + 1 >= 5 THEN now() + interval '15 minutes' "
+    "  ELSE locked_until END "
     "WHERE id = $1";
 
 static bool is_locked(pqxx::work& tx, const std::string& id) {
@@ -182,7 +185,7 @@ void register_auth_routes(crow::SimpleApp& app, ConnectionPool& pool) {
         }
         tx.commit();
 
-        auto token = make_session(u->id, u->email, u->role);
+        auto token = make_session(u->id, u->email, u->role, u->session_version);
         crow::response res{200,
             njson({{"user",{{"id",u->id},{"email",u->email},
                            {"name",u->name},{"role",u->role}}}}).dump()};
@@ -197,7 +200,14 @@ void register_auth_routes(crow::SimpleApp& app, ConnectionPool& pool) {
     ([_enable_or_verify](const crow::request& req){ return _enable_or_verify(req, false); });
 
     CROW_ROUTE(app, "/api/auth/logout").methods("POST"_method)
-    ([] {
+    ([&pool](const crow::request& req) {
+        // Invalida las sesiones abiertas de la cuenta, no solo la cookie de este navegador.
+        if (auto me = auth::get_user(req, pool)) {
+            auto conn = pool.acquire();
+            pqxx::work tx{*conn};
+            db::exec(tx, "UPDATE users SET session_version = session_version + 1 WHERE id = $1", me->id);
+            tx.commit();
+        }
         crow::response res{200, R"({"ok":true})"};
         clear_cookie(res);
         return res;
