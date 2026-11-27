@@ -56,4 +56,11 @@ inline bool is_uuid(const std::string& s) {
 inline bool is_blank(const std::string& s) {
     return s.find_first_not_of(" \t\r\n") == std::string::npos;
 }
+inline bool is_email(const std::string& e) {
+    auto at = e.find('@');
+    return e.size() <= 254 && at != std::string::npos && at > 0 && at + 1 < e.size() &&
+           e.find('@', at + 1) == std::string::npos &&
+           e.find('.', at + 2) != std::string::npos &&
+           e.find_first_of(" \t\r\n<>\"") == std::string::npos;
+}
 } // namespace db

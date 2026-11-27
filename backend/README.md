@@ -40,6 +40,35 @@ La imagen (`Dockerfile`) las aplica sola al arrancar.
 - Auth: /api/auth/login, /api/auth/totp/{setup,enable,verify}, /api/auth/logout, /api/auth/me
 - Recuperación de contraseña: POST /api/auth/password/forgot { email }, POST /api/auth/password/reset { token, password }; páginas /forgot y /reset
 - Admin: /api/admin/users (GET/POST), /api/admin/users/:id (PUT/DELETE)
+- Registro: POST /api/auth/register { email, password, name? } → la cuenta queda pendiente
+  hasta que un admin la aprueba en /admin. Página /register. `ALLOW_REGISTRATION=false` lo apaga.
+- Cambio de contraseña: POST /api/auth/password/change { current_password, new_password }
+  (con sesión). Cierra las demás sesiones. Página /account.
+- Historial del estado (admin): GET /api/state/history, POST /api/state/history/:id/restore
+
+## Permisos
+| Acción | admin | employee |
+|---|---|---|
+| Ver y editar materiales/productos, producir | sí | sí |
+| Borrar materiales o productos (en /api/state o DELETE /api/materials/:id) | sí | no (403) |
+| Usuarios, aprobar registros, historial y restaurar | sí | no |
+
+## Producción
+- `APP_ENV=production`: el servidor no arranca si `JWT_SECRET` es de ejemplo o corto, si la
+  base usa la clave de ejemplo, si `APP_URL` no es `https://`, o si al crear el admin
+  `ADMIN_PASSWORD` es la de ejemplo o tiene menos de 12 caracteres.
+- HTTPS: lo da la plataforma (Render) o un proxy delante (Caddy/Nginx). Con `APP_URL=https://…`
+  la cookie de sesión lleva `Secure`.
+- Correo: `MAIL_PROVIDER` (resend|brevo), `MAIL_API_KEY`, `MAIL_FROM` con dominio verificado.
+  `MAIL_PROVIDER=log` escribe el enlace de recuperación en la salida (solo pruebas locales).
+- Migraciones: la imagen las aplica al arrancar. Sin imagen: `DATABASE_URL=… scripts/migrate.sh`.
+- Respaldo: `scripts/backup.sh` (pg_dump, guarda 14 días). Ejemplo de cron en el script.
+  Además, cada guardado del estado deja la versión anterior en `state_history` (últimas 500).
+
+## Pruebas
+- Unitarias: `./build/tests`
+- De punta a punta (backend levantado sobre una base vacía, con `COOKIE_SECURE=1`):
+  `BASE=http://127.0.0.1:8080 ADMIN_EMAIL=… ADMIN_PASSWORD=… python3 -I tests/e2e_cuentas.py`
 
 Todas las rutas /api/* (salvo /api/auth/login, totp y password) requieren sesión.
 La recuperación de contraseña usa APP_URL y, para enviar el correo, MAIL_PROVIDER (resend o brevo), MAIL_API_KEY y MAIL_FROM. Sin esas tres no se envía correo:

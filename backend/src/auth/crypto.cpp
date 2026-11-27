@@ -148,6 +148,19 @@ bool totp_verify(const std::string& secret_b32, const std::string& code, int win
     return false;
 }
 
+std::optional<int64_t> totp_match_step(const std::string& secret_b32,
+                                       const std::string& code, int window) {
+    if (code.size() != 6) return std::nullopt;
+    int64_t now_step = (int64_t)std::time(nullptr) / 30;
+    for (int d = -window; d <= window; ++d) {
+        auto expected = totp_at(secret_b32, (time_t)((now_step + d) * 30));
+        if (!expected.empty() &&
+            sodium_memcmp(expected.data(), code.data(), 6) == 0)
+            return now_step + d;
+    }
+    return std::nullopt;
+}
+
 // ---------- JWT HS256 ----------
 std::string jwt_sign(const nlohmann::json& payload, const std::string& secret) {
     nlohmann::json header = {{"alg","HS256"},{"typ","JWT"}};

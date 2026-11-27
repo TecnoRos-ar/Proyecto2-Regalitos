@@ -137,7 +137,8 @@ paso("BE-AUT-16", "Segundo ingreso del administrador", "200 needs=totp", f"{est}
      est == 200 and (cuerpo or {}).get("needs") == "totp")
 est, _, _ = llamar("GET", "/api/materials", cookie=tmp2)
 paso("BE-AUT-17", "Usar el token intermedio como sesion", "401", est, est == 401)
-codigo = totp(secreto_admin)
+# El codigo del alta ya se uso: el ingreso usa el siguiente paso de 30 s (REG-HAL-32).
+codigo = totp(secreto_admin, 1)
 est, _, _ = llamar("POST", "/api/auth/totp/verify", {"tmp": tmp2, "code": codigo})
 paso("BE-AUT-18", "Verificar el segundo factor", "200", est, est == 200)
 est, _, _ = llamar("POST", "/api/auth/totp/verify", {"tmp": tmp2, "code": codigo})
@@ -322,17 +323,17 @@ paso("BE-EST-05", "Los materiales guardados desde la pantalla aparecen en /api/m
      "el Hilo de la pantalla y el de la API son el mismo dato", f"pantalla=1 material; API={len(lista or [])} materiales, sin relacion", "DATO")
 est, _, _ = llamar("PUT", "/api/state", {"materiales": [], "productos": []}, EMP)
 _, cuerpo, _ = llamar("GET", "/api/state", cookie=ADMIN)
-paso("BE-EST-06", "La empleada reemplaza todo el estado por uno vacio", "dato: no hay permisos por rol sobre los datos",
-     f"{est} queda={cuerpo}", "DATO")
+paso("BE-EST-06", "La empleada reemplaza todo el estado por uno vacio", "403 y el estado queda igual (REG-HAL-43)",
+     f"{est} queda={cuerpo}", est == 403 and len(((cuerpo or {}).get("data") or {}).get("materiales", [])) > 0)
 malicioso = {"materiales": [{"id": '"><img src=x onerror=window.__qa=1>', "nombre": "<b>x</b>", "unidad": "m",
                              "stock": 1, "precio": 1, "cantidad": 1}], "productos": []}
-est, _, _ = llamar("PUT", "/api/state", malicioso, EMP)
+est, _, _ = llamar("PUT", "/api/state", malicioso, ADMIN)  # admin: puede reemplazar materiales
 paso("BE-EST-07", "Guardar un material cuyo id contiene HTML", "400, o se guarda y la pantalla lo muestra como texto",
      f"{est} (se comprueba en el navegador)", "DATO")
 
 # ---------- Sesiones y permisos ----------
 est, _, _ = llamar("DELETE", f"/api/materials/{hilo.get('id')}", cookie=EMP)
-paso("BE-ROL-01", "La empleada borra un material", "dato: lo decide el equipo (hoy cualquier cuenta puede)", est, "DATO")
+paso("BE-ROL-01", "La empleada borra un material", "403: borrar es solo del admin (REG-HAL-43)", est, est == 403)
 est1, _, cabecera = llamar("POST", "/api/auth/logout", cookie=EMP)
 est2, _, _ = llamar("GET", "/api/auth/me", cookie=EMP)
 paso("BE-SES-01", "Cerrar sesion y volver a usar la cookie anterior", "200 y despues 401", f"{est1} y {est2}", est1 == 200 and est2 == 401)

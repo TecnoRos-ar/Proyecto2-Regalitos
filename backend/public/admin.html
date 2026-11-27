@@ -77,6 +77,14 @@ label{display:flex;flex-direction:column;gap:5px;font-size:12px;color:var(--mute
   </div>
 </div>
 
+<div class="card" style="max-width:960px;margin:20px auto">
+  <h2>Historial de datos</h2>
+  <p style="color:var(--muted,#5B6480);font-size:13px;margin-top:0">Cada guardado deja la versión anterior. Restaurar reemplaza los datos actuales (que también quedan en el historial).</p>
+  <table>
+    <thead><tr><th>#</th><th>Fecha</th><th>Guardado por</th><th>Materiales</th><th>Productos</th><th></th></tr></thead>
+    <tbody id="history"><tr><td colspan="6" class="empty">Cargando…</td></tr></tbody>
+  </table>
+</div>
 <script>
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g,
@@ -97,6 +105,7 @@ async function boot() {
   if (me.role !== 'admin') { location.href = '/'; return; }
   $('#who').textContent = me.email;
   await load();
+  await loadHistory();
 }
 
 async function load() {
@@ -111,14 +120,14 @@ async function load() {
       <td>${esc(u.name) || '<span style="color:var(--muted)">—</span>'}</td>
       <td>
         <span class="badge ${u.role}">${esc(u.role)}</span>
-        ${u.active ? '' : '<span class="badge off">desactivado</span>'}
+        ${u.active ? '' : (u.pending ? '<span class="badge off">pendiente de aprobación</span>' : '<span class="badge off">desactivado</span>')}
       </td>
       <td>${u.totp_enabled ? '✓' : '—'}</td>
       <td>${esc(u.last_login_at || '—')}</td>
       <td>
         <div class="btn-row">
           <button data-action="toggle" data-active="${u.active}">
-            ${u.active ? 'Desactivar' : 'Activar'}
+            ${u.active ? 'Desactivar' : (u.pending ? 'Aprobar' : 'Activar')}
           </button>
           <button data-action="reset2fa">Reset 2FA</button>
           <button data-action="role" data-role="${u.role}">
@@ -186,6 +195,27 @@ $('#create').addEventListener('submit', async (e) => {
     msg.textContent = err.message;
   }
 });
+
+async function loadHistory() {
+  const rows = await api('/api/state/history');
+  const tb = $('#history');
+  if (!rows || !rows.length) { tb.innerHTML = '<tr><td colspan="6" class="empty">Todavía no hay versiones guardadas.</td></tr>'; return; }
+  tb.innerHTML = '';
+  for (const h of rows) {
+    const tr = document.createElement('tr');
+    for (const v of [h.id, new Date(h.created_at).toLocaleString('es-AR'), h.saved_by || '—', h.materiales, h.productos])
+      tr.appendChild(document.createElement('td')).textContent = v;
+    const b = document.createElement('button');
+    b.textContent = 'Restaurar';
+    b.onclick = async () => {
+      if (!confirm('¿Restaurar la versión #' + h.id + '? Los datos actuales quedan en el historial.')) return;
+      try { await api('/api/state/history/' + h.id + '/restore', { method: 'POST' }); alert('Versión restaurada.'); await loadHistory(); }
+      catch (err) { alert(err.message); }
+    };
+    tr.appendChild(document.createElement('td')).appendChild(b);
+    tb.appendChild(tr);
+  }
+}
 
 boot();
 </script>

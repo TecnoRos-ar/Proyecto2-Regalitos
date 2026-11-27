@@ -15,7 +15,10 @@
 using njson = nlohmann::json;
 
 static const int RESET_TTL_MIN      = 30;  // validez del enlace
-static const int MAX_PER_HOUR       = 3;   // pedidos por usuario por hora
+// REG-HAL-47: el tope es por cuenta y conexión, así alguien que conoce el
+// correo no deja al dueño sin enlace; el tope por cuenta frena el abuso masivo.
+static const int MAX_PER_HOUR_IP    = 3;   // pedidos por cuenta y por IP por hora
+static const int MAX_PER_HOUR       = 10;  // pedidos por cuenta por hora (todas las IP)
 static const size_t MIN_PASSWORD_LEN = 8;  // igual que el alta de usuarios
 
 static std::string random_token() {
@@ -97,20 +100,24 @@ void register_password_routes(crow::SimpleApp& app, ConnectionPool& pool) {
                 R"({"ok":true,"message":"Si el email está registrado, te enviamos un enlace para cambiar la contraseña."})"};
         };
 
-        std::string token;
+        std::string token, to_email;
         {
             auto conn = pool.acquire();
             pqxx::work tx{*conn};
             auto u = auth::find_by_email(tx, email);
             if (!u || !u->active) { tx.commit(); return generic(); }
 
-            auto recent = db::exec(tx,
-                "SELECT count(*) FROM password_resets "
+            auto rc = db::exec(tx,
+                "SELECT count(*), count(*) FILTER (WHERE requested_ip = $2) "
+                "FROM password_resets "
                 "WHERE user_id = $1 AND created_at > now() - interval '1 hour'",
-                u->id)[0][0].as<int>();
-            if (recent >= MAX_PER_HOUR) { tx.commit(); return generic(); }
+                u->id, client_ip(req));
+            if (rc[0][0].as<int>() >= MAX_PER_HOUR || rc[0][1].as<int>() >= MAX_PER_HOUR_IP) {
+                tx.commit(); return generic();
+            }
 
             token = random_token();
+            to_email = u->email;
             // Un enlace nuevo anula los anteriores que no se usaron.
             db::exec(tx,
                 "UPDATE password_resets SET used_at = now() "
@@ -130,14 +137,20 @@ void register_password_routes(crow::SimpleApp& app, ConnectionPool& pool) {
             return generic();
         }
         auto link = base + "/reset?token=" + token;
-        auto msg  = reset_email(email, link);
+        auto msg  = reset_email(to_email, link);
 
         // El envío va en segundo plano: así la respuesta tarda lo mismo
         // exista o no la cuenta.
         std::thread([msg, link] {
             if (!mail::configured()) {
-                std::cout << "[password-reset] MAIL_PROVIDER sin configurar. "
-                             "Enlace (solo para pruebas): " << link << std::endl;
+                // REG-HAL-48: el enlace solo se escribe en la salida con
+                // MAIL_PROVIDER=log (pruebas locales). Si no, no se filtra el token.
+                if (env("MAIL_PROVIDER", "") == "log")
+                    std::cout << "[password-reset] MAIL_PROVIDER=log. "
+                                 "Enlace (solo para pruebas): " << link << std::endl;
+                else
+                    std::cerr << "[password-reset] Correo sin configurar: el enlace "
+                                 "no se envió. Configurá MAIL_PROVIDER, MAIL_API_KEY y MAIL_FROM.\n";
                 return;
             }
             std::string err;
