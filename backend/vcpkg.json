@@ -1,5 +1,5 @@
 {
   "name": "regalitos-backend",
   "version": "0.1.0",
-  "dependencies": ["crow", "libpqxx", "nlohmann-json", "doctest", "libsodium", "openssl"]
+  "dependencies": ["crow", "libpqxx", "nlohmann-json", "doctest", "libsodium", "openssl", "curl"]
 }

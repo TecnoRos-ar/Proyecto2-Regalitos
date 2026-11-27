@@ -1,0 +1,14 @@
+BE-NAV-REC-01 | En la página de ingreso, seguir "¿Olvidaste tu contraseña?" | lleva a /forgot | /forgot | PASA
+BE-NAV-REC-02 | Pedir el enlace con un correo sin cuenta | aviso general, sin decir si la cuenta existe | Si el email está registrado, te llega un mensaje con el enlace en unos minutos. Revisá también la carpeta de spam. El enlace vence en 30 minutos. | PASA
+BE-NAV-REC-03 | Pedir el enlace con el correo de una cuenta | el mismo aviso y el formulario se oculta | mismo_aviso=true formulario_oculto=true | PASA
+BE-NAV-REC-04 | El servidor emite el enlace | token de 64 caracteres | token de 64 caracteres | PASA
+BE-NAV-REC-05 | Abrir /reset sin token | aviso de enlace inválido y sin campos | El enlace no es válido o está incompleto. Pedí uno nuevo. campos_ocultos=true | PASA
+BE-NAV-REC-06 | Abrir el enlace | muestra los campos y el token sale de la barra de direcciones | /reset | PASA
+BE-NAV-REC-07 | Escribir dos contraseñas distintas | "Las contraseñas no coinciden." y no se envía | Las contraseñas no coinciden. pedidos=0 | PASA
+BE-NAV-REC-08 | Escribir una contraseña de 7 caracteres | el navegador no deja enviar | campo_invalido=true pedidos=0 ruta=/reset | PASA
+BE-NAV-REC-09 | Escribir ocho espacios | rechazo con mensaje y sigue en /reset | La contraseña tiene que tener al menos 8 caracteres. ruta=/reset | PASA
+BE-NAV-REC-10 | Elegir una contraseña válida | vuelve a /login con el aviso de cambio hecho | /login Listo: tu contraseña se cambió. Ingresá con la nueva. | PASA
+BE-NAV-REC-11 | Ingresar con la contraseña nueva | la acepta y sigue con el segundo factor | pide el alta del segundo factor | PASA
+BE-NAV-REC-12 | Abrir el mismo enlace por segunda vez y enviar | aviso de enlace inválido o vencido | El enlace no es válido o ya venció. Pedí uno nuevo. | PASA
+BE-NAV-REC-13 | Errores de JavaScript durante la corrida | ninguno | ninguno | PASA
+TOTAL | PASA 13 | FALLA 0 | DATO 0

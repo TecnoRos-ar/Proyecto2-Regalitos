@@ -29,9 +29,14 @@ std::optional<AuthCtx> get_user(const crow::request& req, ConnectionPool& pool) 
     auto conn = pool.acquire();
     pqxx::work tx{*conn};
     auto u = auth::find_by_id(tx, payload->value("sub", ""));
+    if (!u || !u->active) { tx.commit(); return std::nullopt; }
+    // Una sesión emitida antes del último cambio de contraseña ya no vale.
+    auto changed = db::exec(tx,
+        "SELECT floor(extract(epoch FROM password_changed_at))::bigint "
+        "FROM users WHERE id = $1", u->id)[0][0].as<int64_t>();
     tx.commit();
-    if (!u || !u->active) return std::nullopt;
     if (payload->value("sv", -1) != u->session_version) return std::nullopt;
+    if (payload->value("iat", (int64_t)0) < changed) return std::nullopt;
     return AuthCtx{ u->id, u->email, u->role };
 }
 

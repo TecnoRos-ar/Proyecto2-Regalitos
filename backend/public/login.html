@@ -23,6 +23,11 @@ button{width:100%;margin-top:22px;padding:12px;border:0;border-radius:10px;
 button:disabled{opacity:.6;cursor:not-allowed}
 .err{color:var(--err);font-size:13px;margin-top:14px;min-height:1.2em}
 .hidden{display:none}
+.links{margin-top:14px;text-align:center;font-size:14px}
+.links a{color:var(--accent);text-decoration:none}
+.links a:hover{text-decoration:underline}
+.ok{color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:10px;
+  padding:10px 12px;font-size:14px;margin:0 0 6px}
 ol.steps{font-size:14px;color:var(--fg);padding-left:20px;margin:0 0 14px}
 ol.steps li{margin-bottom:6px}
 .secret-box{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:14px;margin-top:8px}
@@ -42,11 +47,13 @@ ol.steps li{margin-bottom:6px}
   <p class="sub" id="subtitle">Ingresá con tu email y contraseña.</p>
 
   <div id="step1">
+    <p class="ok hidden" id="reset_ok">Listo: tu contraseña se cambió. Ingresá con la nueva.</p>
     <label for="email">Email</label>
     <input type="email" id="email" autocomplete="username" required>
     <label for="password">Contraseña</label>
     <input type="password" id="password" autocomplete="current-password" required>
     <button type="submit" id="b1">Entrar</button>
+    <p class="links"><a href="/forgot">¿Olvidaste tu contraseña?</a></p>
   </div>
 
   <div id="step2" class="hidden">
@@ -76,6 +83,10 @@ ol.steps li{margin-bottom:6px}
 <script>
 const $ = id => document.getElementById(id);
 let state = null;
+if (new URLSearchParams(location.search).get('reset') === 'ok') {
+  $('reset_ok').classList.remove('hidden');
+  history.replaceState(null, '', '/login');
+}
 
 $('f').addEventListener('submit', async (e) => {
   e.preventDefault();

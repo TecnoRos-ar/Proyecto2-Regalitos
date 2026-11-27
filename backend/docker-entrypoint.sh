@@ -1,6 +1,7 @@
 #!/bin/sh
 # Aplica las migraciones pendientes y arranca el backend.
 set -e
+export PGOPTIONS="--client-min-messages=warning"
 
 if [ -z "$DATABASE_URL" ]; then
   echo "FATAL: falta la variable DATABASE_URL" >&2

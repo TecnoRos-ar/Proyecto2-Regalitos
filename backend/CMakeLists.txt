@@ -13,6 +13,7 @@ find_package(doctest CONFIG REQUIRED)
 find_package(OpenSSL REQUIRED)
 find_package(unofficial-sodium CONFIG REQUIRED)
 find_package(Threads REQUIRED)
+find_package(CURL REQUIRED)
 
 # ---- Binario principal ----
 # Librería QR (Nayuki, dominio público)
@@ -33,6 +34,7 @@ target_link_libraries(regalitos PRIVATE
     OpenSSL::SSL
     OpenSSL::Crypto
     unofficial-sodium::sodium
+    CURL::libcurl
     qrcodegen
 )
 
