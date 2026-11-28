@@ -98,6 +98,16 @@ static std::string qr_to_svg(const qrcodegen::QrCode& qr, int border = 4) {
     return oss.str();
 }
 
+static std::string url_encode(const std::string& in) {
+    static const char* hex = "0123456789ABCDEF";
+    std::string out;
+    for (unsigned char c : in) {
+        if (std::isalnum(c) || c == '-' || c == '.' || c == '_' || c == '~') out += (char)c;
+        else { out += '%'; out += hex[c >> 4]; out += hex[c & 15]; }
+    }
+    return out;
+}
+
 static const char* FAIL_SQL =
     // Un bloqueo vencido reinicia la cuenta: vuelven a ser cinco intentos.
     "UPDATE users SET "
@@ -171,14 +181,23 @@ void register_auth_routes(crow::SimpleApp& app, ConnectionPool& pool) {
         if (u->totp_enabled)
             return crow::response{409, R"({"error":"2FA ya configurado"})"};
 
-        auto sec = auth::crypto::base32_random_secret(20);
-        db::exec(tx, "UPDATE users SET totp_secret = $1 WHERE id = $2", sec, u->id);
+        // Si ya hay una clave sin confirmar, se reutiliza: volver a entrar no
+        // invalida el QR que la persona ya escaneó.
+        std::string sec;
+        if (u->totp_secret && !u->totp_secret->empty()) {
+            sec = *u->totp_secret;
+        } else {
+            sec = auth::crypto::base32_random_secret(20);
+            db::exec(tx, "UPDATE users SET totp_secret = $1 WHERE id = $2", sec, u->id);
+        }
         tx.commit();
 
-        auto url = "otpauth://totp/Regalitos:" + u->email +
-                   "?secret=" + sec + "&issuer=Regalitos";
+        // Formato estándar de Google Authenticator, Microsoft Authenticator, Authy, etc.
+        auto url = "otpauth://totp/Regalitos%3A" + url_encode(u->email) +
+                   "?secret=" + sec + "&issuer=Regalitos&algorithm=SHA1&digits=6&period=30";
         using qrcodegen::QrCode;
-        QrCode qr = QrCode::encodeText(url.c_str(), QrCode::Ecc::MEDIUM);
+        // Corrección LOW: menos módulos, más grandes y fáciles de leer con la cámara.
+        QrCode qr = QrCode::encodeText(url.c_str(), QrCode::Ecc::LOW);
         std::string svg = qr_to_svg(qr, 4);
         return crow::response{200,
             njson({{"secret",sec},{"otpauth_url",url},{"qr_svg",svg}}).dump()};
